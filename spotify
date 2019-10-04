@@ -22,6 +22,12 @@ class SpotifyBlocklet:
         'Stopped': '',
     }
 
+    BUTTON_TO_MPRIS_METHOD = {
+        1: 'PlayPause',   # left button
+        4: 'Next',   # wheel up
+        5: 'Previous',   # wheel down
+    }
+
     loop = None
 
     def __init__(self):
@@ -30,8 +36,14 @@ class SpotifyBlocklet:
 
     def handle_input(self):
         while True:
-            input()
-            self.spotify.PlayPause(dbus_interface=self.PLAYER_INTERFACE)
+            try:
+                button = int(input())
+            except ValueError:
+                continue
+            method_name = self.BUTTON_TO_MPRIS_METHOD.get(button)
+            if method_name:
+                getattr(self.spotify, method_name)(
+                    dbus_interface=self.PLAYER_INTERFACE)
 
     def init_loop(self):
         self.loop = GLib.MainLoop()
