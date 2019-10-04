@@ -2,6 +2,7 @@
 import sys
 import html
 import time
+import threading
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -23,7 +24,14 @@ class SpotifyBlocklet:
 
     def __init__(self):
         self.loop = GLib.MainLoop()
+        self.thread = threading.Thread(target=self.handle_input)
+        self.thread.start()
         DBusGMainLoop(set_as_default=True)
+
+    def handle_input(self):
+        while True:
+            input()
+            self.spotify.PlayPause(dbus_interface=self.PLAYER_INTERFACE)
 
     def run(self):
         self.bus = dbus.SessionBus()
