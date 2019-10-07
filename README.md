@@ -16,7 +16,7 @@ Click image above to watch [screencast][screencast].
 * Python 3
 * [PyGObject][pygobject]
 * [dbus-python][dbus-python]
-* Font Awesome
+* Font Awesome (for status icons, optional)
 
 
 ### Usage
@@ -25,10 +25,31 @@ Add the following lines to your i3blocks config:
 
 ```
 [spotify]
-command=/path/to/i3blocks-spotify-persist/spotify
+command=/path/to/i3blocks-spotify-persist/spotify [-c /path/to/config.json]
 interval=persist
 ...
 ```
+
+### Config example
+
+```json
+{
+    "format": "<span font_family='monospace' color='#ffa651' weight='bold'>{status:icon} {status:upper}</span> <span color='#72bf44' weight='bold'>{artist}</span><span color='#ffa651'>᛫</span><span color='#b2d235'>{title}</span>",
+    "status_icons": {
+        "Playing": "|>",
+        "Paused": "||",
+        "Stopped": "[]"
+    },
+    "mouse_buttons": {
+        "1": "PlayPause",
+        "9": "Previous",
+        "8": "Next"
+    }
+}
+
+```
+
+See blocket source code comments for all config options and their description.
 
 
 [screenshot]: https://tinystash.undef.im/il/AU5kR3crkLj8DR3ktsYfSDjheg8boJp3GtYDRsHctmns.png
