@@ -1,7 +1,6 @@
-i3blocks-spotify-persist
-========================
+# i3blocks-spotify-persist
 
-A persistent [i3blocks][i3blocks] blocklet for the Spotify desktop app
+A persistent [i3blocks][i3blocks] blocklet for the Spotify desktop app.
 
 [![screenshot][screenshot]][screencast]
 
@@ -36,17 +35,17 @@ pipx install i3blocks-spotify-persist
 In this case the blocket script will be placed in `~/.local/bin` directory.
 
 
-### Dependencies
+## Dependencies
 
 Required (installed automatically):
-* [PyGObject][pygobject]
-* [dbus-python][dbus-python]
+  * [PyGObject][pygobject]
+  * [dbus-python][dbus-python]
 
 Optional (installed manually):
-* Font Awesome (for status icons)
+  * [Font Awesome][font-awesome] (for status icons)
 
 
-### Usage
+## Usage
 
 Add the following lines to your i3blocks config:
 
@@ -54,8 +53,59 @@ Add the following lines to your i3blocks config:
 [spotify]
 command=/path/to/bin/i3blocks-spotify-persist [-c /path/to/config.json]
 interval=persist
-...
 ```
+
+
+## Configuration
+
+The blocket can be configured using a JSON config file. The config itself and all its options are optional.
+
+### Config options
+
+#### format
+
+*Type:* string
+
+*Default value:* `{status:icon} {artist} — {title}`
+
+A template string with placeholders. Placeholder formats are `{field}` and `{field:filter}`.
+
+Supported fields:
+
+  * `status`, one of [enum][mpris-playbackstatus-type] values: `Playing`, `Paused`, `Stopped`
+  * `artist`
+  * `title`
+
+Supported fitlers:
+
+  * `upper` — converts a string to uppercase
+  * `lower` — converts a string to lowercase
+  * `capitalize` — converts the first character of a string to uppercase and the rest to lowercase
+  * `icon` — for `status` field only: converts a textual status to an icon (see the `status_icons` option below)
+
+#### markup_escape
+
+*Type:* boolean
+
+*Default value:* `true`
+
+This option specifies whether to escape special characters (such as `<`, `>`, `&`) using corresponding XML entities. Set to `true` if Pango markup is used (`markup=pango` in your `i3blocks` config), `false` otherwise.
+
+#### status_icons
+
+*Type:* object
+
+*Default value:* `{"Playing": "\uf04b", "Paused": "\uf04c", "Stopped": "\uf04d"}`
+
+This option provides a mapping for the `icon` filter (see above). The default value uses icons from [Font Awesome][font-awesome].
+
+#### mouse_buttons
+
+*Type:* object
+
+*Default value:* `{"1": "PlayPause"}`
+
+This option provides a mapping of X11 mouse buttons numbers to [MPRIS methods][mpris-methods]. You can use the `xev` program to determine button numbers.
 
 ### Config example
 
@@ -76,13 +126,20 @@ interval=persist
 
 ```
 
-See blocket source code comments for all config options and their description.
+
+## License
+
+The [MIT License][license].
 
 
 [screenshot]: https://tinystash.undef.im/il/3wQUgnuCRyADYHZ4Vi6qN29p65njk1DdsjUu5WePUBNmUak7Z9y6CqNRnEzMN2pVBVsZvBDJ9GDyJUGGYd3Fgbqd.png
 [screencast]: https://tinystash.undef.im/il/2Xscwkh3rAhw2iqSr9XxJ2Meph57eXiHwkkWiAgroiuGPXB9fYnPJqgdYR7nR4B9U5hHvxxGtr8Sc3QaquwjHT38.mp4
+[license]: https://github.com/un-def/i3blocks-spotify-persist/blob/master/LICENSE
 [i3blocks]: https://github.com/vivien/i3blocks
 [i3blocks-1.5]: https://github.com/vivien/i3blocks/releases/tag/1.5
-[dbus-python]: https://pypi.org/project/dbus-python/
+[dbus-python]: https://dbus.freedesktop.org/doc/dbus-python/
 [pygobject]: https://pygobject.readthedocs.io/en/latest/
+[font-awesome]: https://fontawesome.com/
 [pipx]: https://pipxproject.github.io/pipx/
+[mpris-playbackstatus-type]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#Enum:Playback_Status
+[mpris-methods]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#methods
