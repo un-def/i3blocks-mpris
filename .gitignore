@@ -1,1 +1,9 @@
 *.py[co]
+
+build/
+dist/
+*.egg-info/
+*.whl
+
+.*
+!.gitignore

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import html
 import json
@@ -11,6 +10,10 @@ from copy import deepcopy
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import GLib
+
+
+__version__ = '1.0.0.dev0'
+__author__ = 'un.def <me@undef.im>'
 
 
 class Formatter(string.Formatter):
@@ -188,7 +191,7 @@ class SpotifyBlocklet:
         print(info, flush=True)
 
 
-def read_config():
+def _read_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config')
     args = parser.parse_args()
@@ -199,6 +202,10 @@ def read_config():
         return json.load(fp)
 
 
-if __name__ == '__main__':
-    config = read_config()
+def _main():
+    config = _read_config()
     SpotifyBlocklet(config=config).run(init_loop=True, forever=True)
+
+
+if __name__ == '__main__':
+    _main()
