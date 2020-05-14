@@ -61,9 +61,9 @@ class SpotifyBlocklet:
         'markup_escape': True,
         # MPRIS `PlaybackStatus` property to icon mapping
         'status_icons': {
-            'Playing': '',
-            'Paused': '',
-            'Stopped': '',
+            'Playing': '\uf04b',   # 
+            'Paused': '\uf04c',   # 
+            'Stopped': '\uf04d',   # 
         },
         # X11 mouse button number to MPRIS method mapping
         'mouse_buttons': {
