@@ -3,6 +3,7 @@ import html
 import json
 import os
 import string
+import sys
 import threading
 import time
 from copy import deepcopy
@@ -94,10 +95,11 @@ class SpotifyBlocklet:
         self._mouse_buttons = _config['mouse_buttons']
         self._handle_input_thread = threading.Thread(
             target=self.handle_input, daemon=True)
+        self._prev_info = None
 
     def handle_input(self):
         while True:
-            button = input()
+            button = sys.stdin.readline().strip()
             method_name = self._mouse_buttons.get(button)
             if method_name:
                 getattr(self.spotify, method_name)(
@@ -161,12 +163,14 @@ class SpotifyBlocklet:
         self.show_info(
             status=changed_properties['PlaybackStatus'],
             metadata=changed_properties['Metadata'],
+            only_if_changed=True,
         )
 
     def on_name_owner_changed(self, name, old_owner, new_owner):
         """Clear info when Spotify is closed"""
         if old_owner and not new_owner:
-            print(' ', flush=True)
+            print(flush=True)
+            self._prev_info = None
 
     def get_property(self, property_name):
         return self.spotify.Get(
@@ -180,7 +184,7 @@ class SpotifyBlocklet:
             metadata=self.get_property('Metadata'),
         )
 
-    def show_info(self, status, metadata):
+    def show_info(self, status, metadata, only_if_changed=False):
         artist = ', '.join(metadata['xesam:artist'])
         title = metadata['xesam:title']
         info = self._formatter(
@@ -188,7 +192,9 @@ class SpotifyBlocklet:
             artist=artist,
             title=title,
         )
-        print(info, flush=True)
+        if not only_if_changed or self._prev_info != info:
+            print(info, flush=True)
+            self._prev_info = info
 
 
 def _read_config():
