@@ -81,7 +81,7 @@ class SpotifyBlocklet:
 
     def __init__(self, config=None):
         _config = deepcopy(self.DEFAULT_CONFIG)
-        if config is not None:
+        if config:
             for key, value in config.items():
                 if isinstance(value, dict):
                     _config[key].update(value)
@@ -197,19 +197,34 @@ class SpotifyBlocklet:
             self._prev_info = info
 
 
-def _read_config():
+def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config')
+    parser.add_argument('-f', '--format')
+    markup_escape_group = parser.add_mutually_exclusive_group()
+    markup_escape_group.add_argument(
+        '--markup-escape',
+        action='store_true', default=None, dest='markup_escape',
+    )
+    markup_escape_group.add_argument(
+        '--no-markup-escape',
+        action='store_false', default=None, dest='markup_escape',
+    )
     args = parser.parse_args()
-    if not args.config:
-        return None
-    config_path = os.path.abspath(args.config)
-    with open(config_path) as fp:
-        return json.load(fp)
+    return args
 
 
 def _main():
-    config = _read_config()
+    args = _parse_args()
+    if args.config:
+        with open(os.path.abspath(args.config)) as fp:
+            config = json.load(fp)
+    else:
+        config = {}
+    for key in ['format', 'markup_escape']:
+        value = getattr(args, key)
+        if value is not None:
+            config[key] = value
     SpotifyBlocklet(config=config).run(init_loop=True, forever=True)
 
 

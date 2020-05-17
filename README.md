@@ -128,6 +128,17 @@ This option provides a mapping of X11 mouse buttons numbers to [MPRIS methods][m
 ```
 
 
+## Command line arguments
+
+  * `-h`, `--help` — show all command line arguments and exit
+  * `-c`, `--config` — a path to the config file (see above)
+
+The following arguments override corresponding config options or defaults (that is, command line arguments have the highest precedence):
+
+  * `--format`
+  * `--markup-escape` / `--no-markup-escape`
+
+
 ## License
 
 The [MIT License][license].
