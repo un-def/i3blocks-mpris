@@ -66,7 +66,7 @@ The blocket can be configured using a JSON config file. The config itself and al
 
 *Type:* string
 
-*Default value:* `{status:icon} {artist} — {title}`
+*Default value:* `{status}: {artist} – {title}`
 
 A template string with placeholders. Placeholder formats are `{field}` and `{field:filter}`.
 
@@ -87,7 +87,7 @@ Supported fitlers:
 
 *Type:* boolean
 
-*Default value:* `true`
+*Default value:* `false`
 
 This option specifies whether to escape special characters (such as `<`, `>`, `&`) using corresponding XML entities. Set to `true` if Pango markup is used (`markup=pango` in your `i3blocks` config), `false` otherwise.
 
@@ -112,6 +112,7 @@ This option provides a mapping of X11 mouse buttons numbers to [MPRIS methods][m
 ```json
 {
     "format": "<span font_family='monospace' color='#ffa651' weight='bold'>{status:icon} {status:upper}</span> <span color='#72bf44' weight='bold'>{artist}</span><span color='#ffa651'>᛫</span><span color='#b2d235'>{title}</span>",
+    "markup_escape": true,
     "status_icons": {
         "Playing": "|>",
         "Paused": "||",

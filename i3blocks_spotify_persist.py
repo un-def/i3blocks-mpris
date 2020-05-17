@@ -57,9 +57,9 @@ class SpotifyBlocklet:
         # Format: {field} or {field:filter}
         # Fields: status, artist, title
         # Filters: icon (from status only), upper, lower, capitalize
-        'format': '{status:icon} {artist} — {title}',
+        'format': '{status}: {artist} – {title}',
         # Escape special characters (such as `<>&`) for Pango markup
-        'markup_escape': True,
+        'markup_escape': False,
         # MPRIS `PlaybackStatus` property to icon mapping
         'status_icons': {
             'Playing': '\uf04b',   # 
