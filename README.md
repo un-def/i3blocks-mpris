@@ -107,6 +107,14 @@ This option provides a mapping for the `icon` filter (see above). The default va
 
 This option provides a mapping of X11 mouse buttons numbers to [MPRIS methods][mpris-methods]. You can use the `xev` program to determine button numbers.
 
+#### dedupe
+
+*Type:* boolean
+
+*Default value:* `true`
+
+For some reason, the Spotify app emits several identical signals for one action/event (e.g., it produces **four** `PropertiesChanged` signals when a track is played or paused). If this option is set `true`, the blocklet will compare the updated message with the previous one and print it only if it has changed. There is no reason to turn off deduplication except for debugging.
+
 ### Config example
 
 ```json
@@ -137,6 +145,7 @@ The following arguments override corresponding config options or defaults (that 
 
   * `--format`
   * `--markup-escape` / `--no-markup-escape`
+  * `--dedupe` / `--no-dedupe`
 
 
 ## License

@@ -70,6 +70,8 @@ class SpotifyBlocklet:
         'mouse_buttons': {
             '1': 'PlayPause',
         },
+        # Do not print the same info multiple times if True
+        'dedupe': True,
     }
 
     BUS_NAME = 'org.mpris.MediaPlayer2.spotify'
@@ -93,9 +95,10 @@ class SpotifyBlocklet:
             markup_escape=_config['markup_escape'],
         )
         self._mouse_buttons = _config['mouse_buttons']
+        self._dedupe = _config['dedupe']
+        self._prev_info = None
         self._handle_input_thread = threading.Thread(
             target=self.handle_input, daemon=True)
-        self._prev_info = None
 
     def handle_input(self):
         while True:
@@ -163,7 +166,7 @@ class SpotifyBlocklet:
         self.show_info(
             status=changed_properties['PlaybackStatus'],
             metadata=changed_properties['Metadata'],
-            only_if_changed=True,
+            only_if_changed=self._dedupe,
         )
 
     def on_name_owner_changed(self, name, old_owner, new_owner):
@@ -210,6 +213,15 @@ def _parse_args():
         '--no-markup-escape',
         action='store_false', default=None, dest='markup_escape',
     )
+    dedupe_group = parser.add_mutually_exclusive_group()
+    dedupe_group.add_argument(
+        '--dedupe',
+        action='store_true', default=None, dest='dedupe',
+    )
+    dedupe_group.add_argument(
+        '--no-dedupe',
+        action='store_false', default=None, dest='dedupe',
+    )
     args = parser.parse_args()
     return args
 
@@ -221,7 +233,7 @@ def _main():
             config = json.load(fp)
     else:
         config = {}
-    for key in ['format', 'markup_escape']:
+    for key in ['format', 'markup_escape', 'dedupe']:
         value = getattr(args, key)
         if value is not None:
             config[key] = value
