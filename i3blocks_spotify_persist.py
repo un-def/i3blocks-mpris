@@ -4,16 +4,15 @@ import json
 import os
 import string
 import sys
-import threading
 import time
 from copy import deepcopy
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
-from gi.repository import GLib
+from gi.repository import Gio, GLib
 
 
-__version__ = '1.1.0'
+__version__ = '1.2.0.dev0'
 __author__ = 'un.def <me@undef.im>'
 
 
@@ -79,7 +78,8 @@ class SpotifyBlocklet:
     PLAYER_INTERFACE = 'org.mpris.MediaPlayer2.Player'
     PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
 
-    loop = None
+    _loop = None
+    _stdin_stream = None
 
     def __init__(self, config=None):
         _config = deepcopy(self.DEFAULT_CONFIG)
@@ -97,42 +97,23 @@ class SpotifyBlocklet:
         self._mouse_buttons = _config['mouse_buttons']
         self._dedupe = _config['dedupe']
         self._prev_info = None
-        self._handle_input_thread = threading.Thread(
-            target=self.handle_input, daemon=True)
 
-    def handle_input(self):
-        while True:
-            button = sys.stdin.readline().strip()
-            method_name = self._mouse_buttons.get(button)
-            if method_name:
-                getattr(self.spotify, method_name)(
-                    dbus_interface=self.PLAYER_INTERFACE)
-
-    def init_loop(self):
-        self.loop = GLib.MainLoop()
+    @classmethod
+    def init_loop(cls):
+        loop = GLib.MainLoop()
         # See: https://dbus.freedesktop.org/doc/dbus-python/
         # dbus.mainloop.html?highlight=thread#dbus.mainloop.glib.threads_init
         threads_init()
         DBusGMainLoop(set_as_default=True)
+        return loop
 
-    def _run(self):
-        self.bus = dbus.SessionBus()
-        self.spotify = self.bus.get_object(
-            bus_name=self.BUS_NAME,
-            object_path=self.OBJECT_PATH,
-            follow_name_owner_changes=True,
-        )
-        self.connect_to_dbus_signals()
-        self.show_initial_info()
-        self.loop.run()
-
-    def run(self, *, init_loop=False, forever=False):
-        if init_loop:
-            self.init_loop()
-        elif self.loop is None:
-            raise RuntimeError(
-                'Loop is not initialized; call init_loop() first.')
-        self._handle_input_thread.start()
+    def run(self, *, loop=None, read_stdin=True, forever=False):
+        if loop is None:
+            self._loop = self.init_loop()
+        else:
+            self._loop = loop
+        if read_stdin:
+            self.start_stdin_read_loop()
         while True:
             try:
                 self._run()
@@ -143,15 +124,65 @@ class SpotifyBlocklet:
             finally:
                 if not forever:
                     break
-        self.loop.quit()
+        if read_stdin:
+            self.stop_stdin_read_loop()
+        self._loop = None
+
+    def _run(self):
+        self._bus = dbus.SessionBus()
+        self._spotify = self._bus.get_object(
+            bus_name=self.BUS_NAME,
+            object_path=self.OBJECT_PATH,
+            follow_name_owner_changes=True,
+        )
+        self.connect_to_dbus_signals()
+        self.show_initial_info()
+        try:
+            self._loop.run()
+        finally:
+            self._spotify = None
+
+    def start_stdin_read_loop(self):
+        self._stdin_stream = Gio.DataInputStream.new(
+            Gio.UnixInputStream.new(sys.stdin.fileno(), False))
+        self._stdin_stream.set_close_base_stream(True)
+        self._read_stdin_once()
+
+    def stop_stdin_read_loop(self):
+        self._stdin_stream.close_async(
+            io_priority=GLib.PRIORITY_DEFAULT,
+            callback=lambda *args: self._loop.quit(),
+        )
+        self._loop.run()
+        self._stdin_stream = None
+
+    def _read_stdin_once(self):
+        self._stdin_stream.read_line_async(
+            io_priority=GLib.PRIORITY_DEFAULT, callback=self._on_stdin_line)
+
+    def _on_stdin_line(self, stream, task):
+        try:
+            result = stream.read_line_finish(task)
+        except GLib.Error:
+            return
+        try:
+            button = result[0].decode()
+        except ValueError:
+            button = None
+        if button and self._spotify:
+            method_name = self._mouse_buttons.get(button)
+            if method_name:
+                getattr(self._spotify, method_name)(
+                    dbus_interface=self.PLAYER_INTERFACE)
+        self._read_stdin_once()
 
     def connect_to_dbus_signals(self):
-        self.spotify.connect_to_signal(
+        self._spotify.connect_to_signal(
             signal_name='PropertiesChanged',
             handler_function=self.on_properties_changed,
             dbus_interface=self.PROPERTIES_INTERFACE,
         )
-        self.bus.get_object(
+        self._bus.get_object(
             bus_name='org.freedesktop.DBus',
             object_path='/org/freedesktop/DBus',
         ).connect_to_signal(
@@ -176,7 +207,7 @@ class SpotifyBlocklet:
             self._prev_info = None
 
     def get_property(self, property_name):
-        return self.spotify.Get(
+        return self._spotify.Get(
             self.PLAYER_INTERFACE, property_name,
             dbus_interface=self.PROPERTIES_INTERFACE,
         )
@@ -237,7 +268,7 @@ def _main():
         value = getattr(args, key)
         if value is not None:
             config[key] = value
-    SpotifyBlocklet(config=config).run(init_loop=True, forever=True)
+    SpotifyBlocklet(config=config).run(forever=True)
 
 
 if __name__ == '__main__':
