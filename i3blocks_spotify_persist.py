@@ -260,6 +260,7 @@ def _parse_args():
         '--no-dedupe',
         action='store_false', default=None, dest='dedupe',
     )
+    parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args()
     return args
 
