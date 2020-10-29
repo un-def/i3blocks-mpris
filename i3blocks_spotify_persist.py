@@ -276,7 +276,7 @@ def _main():
         value = getattr(args, key)
         if value is not None:
             config[key] = value
-    SpotifyBlocklet(config=config).run(nowait=True)
+    SpotifyBlocklet(config=config).run()
 
 
 if __name__ == '__main__':
