@@ -4,7 +4,6 @@ import json
 import os
 import string
 import sys
-import time
 from copy import deepcopy
 
 import dbus
@@ -80,6 +79,8 @@ class SpotifyBlocklet:
 
     _loop = None
     _stdin_stream = None
+    _bus = None
+    _spotify = None
 
     def __init__(self, config=None):
         _config = deepcopy(self.DEFAULT_CONFIG)
@@ -99,7 +100,7 @@ class SpotifyBlocklet:
         self._prev_info = None
 
     @classmethod
-    def init_loop(cls):
+    def create_loop(cls):
         loop = GLib.MainLoop()
         # See: https://dbus.freedesktop.org/doc/dbus-python/
         # dbus.mainloop.html?highlight=thread#dbus.mainloop.glib.threads_init
@@ -107,40 +108,30 @@ class SpotifyBlocklet:
         DBusGMainLoop(set_as_default=True)
         return loop
 
-    def run(self, *, loop=None, read_stdin=True, forever=False):
+    def init_bus(self):
+        self._bus = dbus.SessionBus()
+
+    def run(self, *, loop=None, read_stdin=True, nowait=False):
         if loop is None:
-            self._loop = self.init_loop()
+            self._loop = self.create_loop()
         else:
             self._loop = loop
+        self.init_bus()
+        try:
+            self.init_spotify()
+        except dbus.exceptions.DBusException:
+            if nowait:
+                return
         if read_stdin:
             self.start_stdin_read_loop()
-        while True:
-            try:
-                self._run()
-            except dbus.exceptions.DBusException:
-                time.sleep(1)
-            except KeyboardInterrupt:
-                break
-            finally:
-                if not forever:
-                    break
-        if read_stdin:
-            self.stop_stdin_read_loop()
-        self._loop = None
-
-    def _run(self):
-        self._bus = dbus.SessionBus()
-        self._spotify = self._bus.get_object(
-            bus_name=self.BUS_NAME,
-            object_path=self.OBJECT_PATH,
-            follow_name_owner_changes=True,
-        )
-        self.connect_to_dbus_signals()
-        self.show_initial_info()
+        self.connect_to_name_owner_changed_signal()
         try:
             self._loop.run()
+        except KeyboardInterrupt:
+            pass
         finally:
-            self._spotify = None
+            if read_stdin:
+                self.stop_stdin_read_loop()
 
     def start_stdin_read_loop(self):
         self._stdin_stream = Gio.DataInputStream.new(
@@ -176,23 +167,23 @@ class SpotifyBlocklet:
                     dbus_interface=self.PLAYER_INTERFACE)
         self._read_stdin_once()
 
-    def connect_to_dbus_signals(self):
+    def init_spotify(self):
+        self._spotify = self._bus.get_object(
+            bus_name=self.BUS_NAME,
+            object_path=self.OBJECT_PATH,
+            follow_name_owner_changes=True,
+        )
+        self.connect_to_properties_changed_signal()
+        self.show_initial_info()
+
+    def connect_to_properties_changed_signal(self):
         self._spotify.connect_to_signal(
             signal_name='PropertiesChanged',
-            handler_function=self.on_properties_changed,
+            handler_function=self._on_properties_changed,
             dbus_interface=self.PROPERTIES_INTERFACE,
         )
-        self._bus.get_object(
-            bus_name='org.freedesktop.DBus',
-            object_path='/org/freedesktop/DBus',
-        ).connect_to_signal(
-            signal_name='NameOwnerChanged',
-            handler_function=self.on_name_owner_changed,
-            dbus_interface='org.freedesktop.DBus',
-            arg0=self.BUS_NAME,
-        )
 
-    def on_properties_changed(self, interface_name, changed_properties, _):
+    def _on_properties_changed(self, interface_name, changed_properties, _):
         """Show updated info when playback status or track is changed"""
         self.show_info(
             status=changed_properties['PlaybackStatus'],
@@ -200,9 +191,25 @@ class SpotifyBlocklet:
             only_if_changed=self._dedupe,
         )
 
-    def on_name_owner_changed(self, name, old_owner, new_owner):
-        """Clear info when Spotify is closed"""
-        if old_owner and not new_owner:
+    def connect_to_name_owner_changed_signal(self):
+        self._bus.get_object(
+            bus_name='org.freedesktop.DBus',
+            object_path='/org/freedesktop/DBus',
+        ).connect_to_signal(
+            signal_name='NameOwnerChanged',
+            handler_function=self._on_name_owner_changed,
+            dbus_interface='org.freedesktop.DBus',
+            arg0=self.BUS_NAME,
+        )
+
+    def _on_name_owner_changed(self, name, old_owner, new_owner):
+        """
+        Get Spotify object when Spotify is started or clear info when
+        Spotify is closed
+        """
+        if not old_owner and new_owner and not self._spotify:
+            self.init_spotify()
+        elif old_owner and not new_owner:
             print(flush=True)
             self._prev_info = None
 
@@ -268,7 +275,7 @@ def _main():
         value = getattr(args, key)
         if value is not None:
             config[key] = value
-    SpotifyBlocklet(config=config).run(forever=True)
+    SpotifyBlocklet(config=config).run(nowait=True)
 
 
 if __name__ == '__main__':
