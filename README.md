@@ -148,6 +148,11 @@ The following arguments override corresponding config options or defaults (that 
   * `--dedupe` / `--no-dedupe`
 
 
+## Changelog
+
+See [CHANGELOG.md][changelog].
+
+
 ## License
 
 The [MIT License][license].
@@ -156,6 +161,7 @@ The [MIT License][license].
 [screenshot]: https://tinystash.undef.im/il/3wQUgnuCRyADYHZ4Vi6qN29p65njk1DdsjUu5WePUBNmUak7Z9y6CqNRnEzMN2pVBVsZvBDJ9GDyJUGGYd3Fgbqd.png
 [screencast]: https://tinystash.undef.im/il/2Xscwkh3rAhw2iqSr9XxJ2Meph57eXiHwkkWiAgroiuGPXB9fYnPJqgdYR7nR4B9U5hHvxxGtr8Sc3QaquwjHT38.mp4
 [license]: https://github.com/un-def/i3blocks-spotify-persist/blob/master/LICENSE
+[changelog]: https://github.com/un-def/i3blocks-spotify-persist/blob/master/CHANGELOG.md
 [i3blocks]: https://github.com/vivien/i3blocks
 [i3blocks-1.5]: https://github.com/vivien/i3blocks/releases/tag/1.5
 [dbus-python]: https://dbus.freedesktop.org/doc/dbus-python/
