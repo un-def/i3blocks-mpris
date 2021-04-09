@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0 (unreleased)
+
+### Changes
+
+  * The minimum Python version was bumped to 3.6.
+
 ## 1.2.0
 
 ### Fixes

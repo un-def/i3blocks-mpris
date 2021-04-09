@@ -72,7 +72,7 @@ class MPRISBlocklet:
         'dedupe': True,
     }
 
-    BUS_NAME = 'org.mpris.MediaPlayer2.spotify'
+    BUS_NAME_PREFIX = 'org.mpris.MediaPlayer2.'
     OBJECT_PATH = '/org/mpris/MediaPlayer2'
     PLAYER_INTERFACE = 'org.mpris.MediaPlayer2.Player'
     PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
@@ -82,7 +82,10 @@ class MPRISBlocklet:
     _bus = None
     _player = None
 
-    def __init__(self, config=None):
+    def __init__(self, bus_name, config=None):
+        if not bus_name.startswith(self.BUS_NAME_PREFIX):
+            bus_name = f'{self.BUS_NAME_PREFIX}{bus_name}'
+        self._bus_name = bus_name
         _config = deepcopy(self.DEFAULT_CONFIG)
         if config:
             for key, value in config.items():
@@ -169,7 +172,7 @@ class MPRISBlocklet:
 
     def init_player(self):
         self._player = self._bus.get_object(
-            bus_name=self.BUS_NAME,
+            bus_name=self._bus_name,
             object_path=self.OBJECT_PATH,
             follow_name_owner_changes=True,
         )
@@ -199,7 +202,7 @@ class MPRISBlocklet:
             signal_name='NameOwnerChanged',
             handler_function=self._on_name_owner_changed,
             dbus_interface='org.freedesktop.DBus',
-            arg0=self.BUS_NAME,
+            arg0=self._bus_name,
         )
 
     def _on_name_owner_changed(self, name, old_owner, new_owner):
@@ -241,6 +244,7 @@ class MPRISBlocklet:
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config')
+    parser.add_argument('-p', '--player')
     parser.add_argument('-f', '--format')
     markup_escape_group = parser.add_mutually_exclusive_group()
     markup_escape_group.add_argument(
@@ -270,13 +274,18 @@ def _main():
     if args.config:
         with open(os.path.abspath(args.config)) as fp:
             config = json.load(fp)
+        player_from_config = config.pop('player', None)
     else:
         config = {}
+        player_from_config = None
+    player = args.player or player_from_config
+    if not player:
+        sys.exit('player is not specified')
     for key in ['format', 'markup_escape', 'dedupe']:
         value = getattr(args, key)
         if value is not None:
             config[key] = value
-    MPRISBlocklet(config=config).run()
+    MPRISBlocklet(bus_name=player, config=config).run()
 
 
 if __name__ == '__main__':
