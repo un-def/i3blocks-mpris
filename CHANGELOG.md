@@ -4,7 +4,7 @@
 
 ### Fixes
 
-  * Fixed an issue where the blocklet would hang up hugging CPU when Spotify app was not running for a while (https://github.com/un-def/i3blocks-spotify-persist/issues/6).
+  * Fixed an issue where the blocklet would hang up hugging CPU when Spotify app was not running for a while (https://github.com/un-def/i3blocks-mpris/issues/6).
 
 ### Internal Changes
 

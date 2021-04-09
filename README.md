@@ -1,6 +1,6 @@
-# i3blocks-spotify-persist
+# i3blocks-mpris
 
-A persistent [i3blocks][i3blocks] blocklet for the Spotify desktop app.
+A persistent [i3blocks][i3blocks] blocklet for the [MPRIS][mpris-spec] D-Bus interface.
 
 [![screenshot][screenshot]][screencast]
 
@@ -21,15 +21,15 @@ Click the image above to watch a [screencast][screencast].
 The blocket can be installed from PyPI using `pip`:
 
 ```shell
-python3 -m pip install [--user] i3blocks-spotify-persist
+python3 -m pip install [--user] i3blocks-mpris
 ```
 
-Once the package is installed, there will be a blocket script named `i3blocks-spotify-persist` somewhere depending on the presence of a `--user` pip flag (e.g., `/usr/local/bin/i3blocks-spotify-persist` or `~/.local/bin/i3blocks-spotify-persist`).
+Once the package is installed, there will be a blocket script named `i3blocks-mpris` somewhere depending on the presence of a `--user` pip flag (e.g., `/usr/local/bin/i3blocks-mpris` or `~/.local/bin/i3blocks-mpris`).
 
 To avoid dependecy hell, [pipx][pipx] can be used:
 
 ```shell
-pipx install i3blocks-spotify-persist
+pipx install i3blocks-mpris
 ```
 
 In this case the blocket script will be placed in `~/.local/bin` directory.
@@ -50,8 +50,8 @@ Optional (installed manually):
 Add the following lines to your i3blocks config:
 
 ```
-[spotify]
-command=/path/to/bin/i3blocks-spotify-persist [-c /path/to/config.json]
+[mpris]
+command=/path/to/bin/i3blocks-mpris [-c /path/to/config.json]
 interval=persist
 ```
 
@@ -160,13 +160,14 @@ The [MIT License][license].
 
 [screenshot]: https://tinystash.undef.im/il/3wQUgnuCRyADYHZ4Vi6qN29p65njk1DdsjUu5WePUBNmUak7Z9y6CqNRnEzMN2pVBVsZvBDJ9GDyJUGGYd3Fgbqd.png
 [screencast]: https://tinystash.undef.im/il/2Xscwkh3rAhw2iqSr9XxJ2Meph57eXiHwkkWiAgroiuGPXB9fYnPJqgdYR7nR4B9U5hHvxxGtr8Sc3QaquwjHT38.mp4
-[license]: https://github.com/un-def/i3blocks-spotify-persist/blob/master/LICENSE
-[changelog]: https://github.com/un-def/i3blocks-spotify-persist/blob/master/CHANGELOG.md
+[license]: https://github.com/un-def/i3blocks-mpris/blob/master/LICENSE
+[changelog]: https://github.com/un-def/i3blocks-mpris/blob/master/CHANGELOG.md
 [i3blocks]: https://github.com/vivien/i3blocks
 [i3blocks-1.5]: https://github.com/vivien/i3blocks/releases/tag/1.5
 [dbus-python]: https://dbus.freedesktop.org/doc/dbus-python/
 [pygobject]: https://pygobject.readthedocs.io/en/latest/
 [font-awesome]: https://fontawesome.com/
 [pipx]: https://pipxproject.github.io/pipx/
+[mpris-spec]: https://specifications.freedesktop.org/mpris-spec/latest/
 [mpris-playbackstatus-type]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#Enum:Playback_Status
 [mpris-methods]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#methods

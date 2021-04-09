@@ -11,7 +11,7 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import Gio, GLib
 
 
-__version__ = '1.2.0'
+__version__ = '2.0.0.dev0'
 __author__ = 'un.def <me@undef.im>'
 
 
@@ -49,7 +49,7 @@ class Formatter(string.Formatter):
         return self._status_icons.get(status, '?')
 
 
-class SpotifyBlocklet:
+class MPRISBlocklet:
 
     DEFAULT_CONFIG = {
         # Format: {field} or {field:filter}
@@ -80,7 +80,7 @@ class SpotifyBlocklet:
     _loop = None
     _stdin_stream = None
     _bus = None
-    _spotify = None
+    _player = None
 
     def __init__(self, config=None):
         _config = deepcopy(self.DEFAULT_CONFIG)
@@ -118,7 +118,7 @@ class SpotifyBlocklet:
             self._loop = loop
         self.init_bus()
         try:
-            self.init_spotify()
+            self.init_player()
         except dbus.exceptions.DBusException:
             if nowait:
                 return
@@ -160,15 +160,15 @@ class SpotifyBlocklet:
             button = result[0].decode()
         except ValueError:
             button = None
-        if button and self._spotify:
+        if button and self._player:
             method_name = self._mouse_buttons.get(button)
             if method_name:
-                getattr(self._spotify, method_name)(
+                getattr(self._player, method_name)(
                     dbus_interface=self.PLAYER_INTERFACE)
         self._read_stdin_once()
 
-    def init_spotify(self):
-        self._spotify = self._bus.get_object(
+    def init_player(self):
+        self._player = self._bus.get_object(
             bus_name=self.BUS_NAME,
             object_path=self.OBJECT_PATH,
             follow_name_owner_changes=True,
@@ -177,7 +177,7 @@ class SpotifyBlocklet:
         self.show_initial_info()
 
     def connect_to_properties_changed_signal(self):
-        self._spotify.connect_to_signal(
+        self._player.connect_to_signal(
             signal_name='PropertiesChanged',
             handler_function=self._on_properties_changed,
             dbus_interface=self.PROPERTIES_INTERFACE,
@@ -204,17 +204,17 @@ class SpotifyBlocklet:
 
     def _on_name_owner_changed(self, name, old_owner, new_owner):
         """
-        Get Spotify object when Spotify is started or clear info when
-        Spotify is closed
+        Get the player object when the player is started or clear info when
+        the player is closed
         """
-        if not old_owner and new_owner and not self._spotify:
-            self.init_spotify()
+        if not old_owner and new_owner and not self._player:
+            self.init_player()
         elif old_owner and not new_owner:
             print(flush=True)
             self._prev_info = None
 
     def get_property(self, property_name):
-        return self._spotify.Get(
+        return self._player.Get(
             self.PLAYER_INTERFACE, property_name,
             dbus_interface=self.PROPERTIES_INTERFACE,
         )
@@ -276,7 +276,7 @@ def _main():
         value = getattr(args, key)
         if value is not None:
             config[key] = value
-    SpotifyBlocklet(config=config).run()
+    MPRISBlocklet(config=config).run()
 
 
 if __name__ == '__main__':
