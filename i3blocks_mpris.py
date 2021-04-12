@@ -111,8 +111,20 @@ class MPRISBlocklet:
         DBusGMainLoop(set_as_default=True)
         return loop
 
+    @property
+    def name_has_owner(self):
+        return self._bus.name_has_owner(self._bus_name)
+
     def init_bus(self):
         self._bus = dbus.SessionBus()
+
+    def init_player(self):
+        self._player = self._bus.get_object(
+            bus_name=self._bus_name,
+            object_path=self.OBJECT_PATH,
+            follow_name_owner_changes=True,
+        )
+        self.connect_to_properties_changed_signal()
 
     def run(self, *, loop=None, read_stdin=True, nowait=False):
         if loop is None:
@@ -120,11 +132,11 @@ class MPRISBlocklet:
         else:
             self._loop = loop
         self.init_bus()
-        try:
+        if self.name_has_owner:
             self.init_player()
-        except dbus.exceptions.DBusException:
-            if nowait:
-                return
+            self.show_initial_info()
+        elif nowait:
+            return
         if read_stdin:
             self.start_stdin_read_loop()
         self.connect_to_name_owner_changed_signal()
@@ -166,18 +178,9 @@ class MPRISBlocklet:
         if button and self._player:
             method_name = self._mouse_buttons.get(button)
             if method_name:
-                getattr(self._player, method_name)(
-                    dbus_interface=self.PLAYER_INTERFACE)
+                self._player.get_dbus_method(
+                    method_name, dbus_interface=self.PLAYER_INTERFACE)()
         self._read_stdin_once()
-
-    def init_player(self):
-        self._player = self._bus.get_object(
-            bus_name=self._bus_name,
-            object_path=self.OBJECT_PATH,
-            follow_name_owner_changes=True,
-        )
-        self.connect_to_properties_changed_signal()
-        self.show_initial_info()
 
     def connect_to_properties_changed_signal(self):
         self._player.connect_to_signal(
@@ -207,11 +210,13 @@ class MPRISBlocklet:
 
     def _on_name_owner_changed(self, name, old_owner, new_owner):
         """
-        Get the player object when the player is started or clear info when
-        the player is closed
+        Get the player and show the initial info when the player is started
+        or clear the info when the player is closed
         """
-        if not old_owner and new_owner and not self._player:
-            self.init_player()
+        if not old_owner and new_owner:
+            if not self._player:
+                self.init_player()
+            self.show_initial_info()
         elif old_owner and not new_owner:
             print(flush=True)
             self._prev_info = None
