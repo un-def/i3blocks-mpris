@@ -100,7 +100,9 @@ class MPRISBlocklet:
         )
         self._mouse_buttons = _config['mouse_buttons']
         self._dedupe = _config['dedupe']
-        self._prev_info = None
+        self._last_info = None
+        self._last_status = None
+        self._last_metadata = None
 
     @classmethod
     def create_loop(cls):
@@ -192,8 +194,8 @@ class MPRISBlocklet:
     def _on_properties_changed(self, interface_name, changed_properties, _):
         """Show updated info when playback status or track is changed"""
         self.show_info(
-            status=changed_properties['PlaybackStatus'],
-            metadata=changed_properties['Metadata'],
+            status=changed_properties.get('PlaybackStatus'),
+            metadata=changed_properties.get('Metadata'),
             only_if_changed=self._dedupe,
         )
 
@@ -219,7 +221,7 @@ class MPRISBlocklet:
             self.show_initial_info()
         elif old_owner and not new_owner:
             print(flush=True)
-            self._prev_info = None
+            self._last_info = None
 
     def get_property(self, property_name):
         return self._player.Get(
@@ -233,7 +235,17 @@ class MPRISBlocklet:
             metadata=self.get_property('Metadata'),
         )
 
-    def show_info(self, status, metadata, only_if_changed=False):
+    def show_info(self, status=None, metadata=None, *, only_if_changed=False):
+        if status is None:
+            status = self._last_status
+        else:
+            self._last_status = status
+        if metadata is None:
+            metadata = self._last_metadata
+        else:
+            self._last_metadata = metadata
+        if status is None or metadata is None:
+            return
         artist = ', '.join(metadata['xesam:artist'])
         title = metadata['xesam:title']
         info = self._formatter(
@@ -241,9 +253,9 @@ class MPRISBlocklet:
             artist=artist,
             title=title,
         )
-        if not only_if_changed or self._prev_info != info:
+        if not only_if_changed or self._last_info != info:
             print(info, flush=True)
-            self._prev_info = info
+            self._last_info = info
 
 
 def _parse_args():
