@@ -6,6 +6,7 @@ A persistent [i3blocks][i3blocks] blocklet for the [MPRIS][mpris-spec] D-Bus int
 
 Click the image above to watch a [screencast][screencast].
 
+This project was previously known as **i3blocks-spotify-persist**.
 
 ## Features
 
@@ -16,7 +17,7 @@ Click the image above to watch a [screencast][screencast].
 
 ## Installation
 
-**Python version 3.5 or later is required.**
+**Python version 3.6 or later is required.**
 
 The blocket can be installed from PyPI using `pip`:
 
@@ -51,16 +52,31 @@ Add the following lines to your i3blocks config:
 
 ```
 [mpris]
-command=/path/to/bin/i3blocks-mpris [-c /path/to/config.json]
+command=/path/to/bin/i3blocks-mpris -c /path/to/config.json
 interval=persist
 ```
 
 
 ## Configuration
 
-The blocket can be configured using a JSON config file. The config itself and all its options are optional.
+The blocket can be configured using a JSON config file and/or command line arguments. The only required parameter is `player`. It must be specified using either the config or the command line argument. Other config parameters and the config itself are optional.
 
-### Config options
+### Config parameters
+
+#### player
+
+*Type:* string
+
+*Default value:* no default value, must be specified
+
+A name of the player, either a full bus name — `org.mpris.MediaPlayer2.<player>[.<instance>]` — or its `<player>[.<instance>]` part.
+
+Examples:
+
+  * org.mpris.MediaPlayer2.spotify
+  * org.mpris.MediaPlayer2.vlc.instance7389
+  * spotify
+  * vlc.instance7389
 
 #### format
 
@@ -119,6 +135,7 @@ For some reason, the Spotify app emits several identical signals for one action/
 
 ```json
 {
+    "player": "spotify",
     "format": "<span font_family='monospace' color='#ffa651' weight='bold'>{status:icon} {status:upper}</span> <span color='#72bf44' weight='bold'>{artist}</span><span color='#ffa651'>᛫</span><span color='#b2d235'>{title}</span>",
     "markup_escape": true,
     "status_icons": {
@@ -143,6 +160,7 @@ For some reason, the Spotify app emits several identical signals for one action/
 
 The following arguments override corresponding config options or defaults (that is, command line arguments have the highest precedence):
 
+  * `-p`, `--player`
   * `--format`
   * `--markup-escape` / `--no-markup-escape`
   * `--dedupe` / `--no-dedupe`
