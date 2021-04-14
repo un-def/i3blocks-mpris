@@ -1,10 +1,16 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0
 
 ### Changes
 
+  * The blocklet now works with any media player that supports the MPRIS D-Bus interface, not only the Spotify app. A new required parameter `player` was introduced. To indicate this change, the blocklet was renamed from `i3blocks-spotify-persist` to `i3blocks-mpris`.
   * The minimum Python version was bumped to 3.6.
+
+### Fixes
+
+  * The `PlaybackStatus` and `Metadata` properties is now cached to properly handle the `PropertiesChanged` signal. There was no issue with the Spotify app purely by chance.
+  * Fixed erroneous `init_player()` logic.
 
 ## 1.2.0
 
@@ -27,8 +33,8 @@
 
 ### Changes
 
-* The default format now uses a textual status instead of an icon.
-* Pango markup escape is now disabled by default.
+  * The default format now uses a textual status instead of an icon.
+  * Pango markup escape is now disabled by default.
 
 ## 1.0.0
 

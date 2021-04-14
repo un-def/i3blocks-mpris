@@ -8,6 +8,7 @@ Click the image above to watch a [screencast][screencast].
 
 This project was previously known as **i3blocks-spotify-persist**.
 
+
 ## Features
 
 * near-immediate updates thanks to the event-driven model: the blocket is a constantly running process receiving D-Bus signals
@@ -187,5 +188,5 @@ The [MIT License][license].
 [font-awesome]: https://fontawesome.com/
 [pipx]: https://pipxproject.github.io/pipx/
 [mpris-spec]: https://specifications.freedesktop.org/mpris-spec/latest/
-[mpris-playbackstatus-type]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#Enum:Playback_Status
-[mpris-methods]: https://specifications.freedesktop.org/mpris-spec/2.2/Player_Interface.html#methods
+[mpris-playbackstatus-type]: https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Enum:Playback_Status
+[mpris-methods]: https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#methods
