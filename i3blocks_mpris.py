@@ -11,7 +11,7 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import Gio, GLib
 
 
-__version__ = '2.0.0'
+__version__ = '2.0.1.dev0'
 __author__ = 'un.def <me@undef.im>'
 
 
@@ -246,8 +246,8 @@ class MPRISBlocklet:
             self._last_metadata = metadata
         if status is None or metadata is None:
             return
-        artist = ', '.join(metadata['xesam:artist'])
-        title = metadata['xesam:title']
+        artist = ', '.join(metadata.get('xesam:artist', ()))
+        title = metadata.get('xesam:title', '')
         info = self._formatter(
             status=status,
             artist=artist,
