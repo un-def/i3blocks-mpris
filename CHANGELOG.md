@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+### Fixes
+
+  * An empty string is now used as a fallback for missing metadata fields (artist, title). Previously, an exception would be raised if any of the required fields were missing.
+
 ## 2.0.0
 
 ### Changes
