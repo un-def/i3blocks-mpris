@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 (UNRELEASED)
+
+### Breaking Changes
+
+  * Dropped Python 3.6 and 3.7 support.
+
+### Features
+
+  * Added Python 3.12 support.
+
 ## 2.0.1
 
 ### Fixes
