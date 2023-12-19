@@ -2,7 +2,7 @@
 
 ## 2.1.0 (UNRELEASED)
 
-### Breaking Changes
+### Changes
 
   * Dropped Python 3.6 and 3.7 support.
 
