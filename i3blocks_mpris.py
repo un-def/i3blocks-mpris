@@ -4,6 +4,7 @@ import json
 import os
 import string
 import sys
+import unicodedata
 from copy import deepcopy
 
 import dbus
@@ -36,6 +37,7 @@ class Formatter(string.Formatter):
         return self.format(self._format_string, *args, **kwargs)
 
     def format_field(self, value, format_spec):
+        value = self._sanitize_unicode(value)
         if format_spec:
             format_func = self._FORMAT_FUNCS[format_spec]
             if isinstance(format_func, str):
@@ -44,6 +46,15 @@ class Formatter(string.Formatter):
         if self._markup_escape:
             value = html.escape(value)
         return value
+
+    def _sanitize_unicode(self, value: str) -> str:
+        """Removes all characters belonging to the `C` (“other”) categories
+        save for the `Cf` (“format”) category.
+        """
+        return ''.join(
+            char for char in value
+            if unicodedata.category(char) not in {'Cc', 'Cs', 'Co', 'Cn'}
+        )
 
     def _format_func__status_icon(self, status):
         return self._status_icons.get(status, '?')

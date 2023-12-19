@@ -9,6 +9,7 @@
 ### Features
 
   * Added Python 3.12 support.
+  * Unicode values are now sanitized to remove some non-printable characters (see [#9](https://github.com/un-def/i3blocks-mpris/issues/9)).
 
 ## 2.0.1
 
