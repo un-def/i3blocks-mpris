@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import html
 import json
@@ -269,29 +271,25 @@ class MPRISBlocklet:
             self._last_info = info
 
 
+def _add_boolean_flag_group(
+    parser: argparse.ArgumentParser, name: str, dest: str | None = None,
+) -> None:
+    if dest is None:
+        dest = name.replace('-', '_')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        f'--{name}', action='store_true', default=None, dest=dest)
+    group.add_argument(
+        f'--no-{name}', action='store_false', default=None, dest=dest)
+
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config')
     parser.add_argument('-p', '--player')
     parser.add_argument('-f', '--format')
-    markup_escape_group = parser.add_mutually_exclusive_group()
-    markup_escape_group.add_argument(
-        '--markup-escape',
-        action='store_true', default=None, dest='markup_escape',
-    )
-    markup_escape_group.add_argument(
-        '--no-markup-escape',
-        action='store_false', default=None, dest='markup_escape',
-    )
-    dedupe_group = parser.add_mutually_exclusive_group()
-    dedupe_group.add_argument(
-        '--dedupe',
-        action='store_true', default=None, dest='dedupe',
-    )
-    dedupe_group.add_argument(
-        '--no-dedupe',
-        action='store_false', default=None, dest='dedupe',
-    )
+    _add_boolean_flag_group(parser, 'markup-escape')
+    _add_boolean_flag_group(parser, 'dedupe')
     parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args()
     return args
