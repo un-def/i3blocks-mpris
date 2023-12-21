@@ -27,19 +27,21 @@ class Formatter(string.Formatter):
         'icon': 'status_icon',
     }
 
-    def __init__(self, format_string, status_icons=None, markup_escape=True):
+    def __init__(
+        self, *, format_string: str, status_icons: dict[str, str],
+        markup_escape: bool, sanitize_unicode: bool,
+    ):
         self._format_string = format_string
-        if status_icons is not None:
-            self._status_icons = status_icons.copy()
-        else:
-            self._status_icons = {}
+        self._status_icons = status_icons.copy()
         self._markup_escape = markup_escape
+        self._sanitize_unicode = sanitize_unicode
 
     def __call__(self, *args, **kwargs):
         return self.format(self._format_string, *args, **kwargs)
 
     def format_field(self, value, format_spec):
-        value = self._sanitize_unicode(value)
+        if self._sanitize_unicode:
+            value = self._do_sanitize_unicode(value)
         if format_spec:
             format_func = self._FORMAT_FUNCS[format_spec]
             if isinstance(format_func, str):
@@ -49,7 +51,7 @@ class Formatter(string.Formatter):
             value = html.escape(value)
         return value
 
-    def _sanitize_unicode(self, value: str) -> str:
+    def _do_sanitize_unicode(self, value: str) -> str:
         """Removes all characters belonging to the `C` (“other”) categories
         save for the `Cf` (“format”) category.
         """
@@ -71,6 +73,8 @@ class MPRISBlocklet:
         'format': '{status}: {artist} – {title}',
         # Escape special characters (such as `<>&`) for Pango markup
         'markup_escape': False,
+        # Remove `C` category unicode characters (except for `Cf`)
+        'sanitize_unicode': True,
         # MPRIS `PlaybackStatus` property to icon mapping
         'status_icons': {
             'Playing': '\uf04b',   # 
@@ -110,6 +114,7 @@ class MPRISBlocklet:
             format_string=_config['format'],
             status_icons=_config['status_icons'],
             markup_escape=_config['markup_escape'],
+            sanitize_unicode=_config['sanitize_unicode'],
         )
         self._mouse_buttons = _config['mouse_buttons']
         self._dedupe = _config['dedupe']
@@ -289,6 +294,7 @@ def _parse_args():
     parser.add_argument('-p', '--player')
     parser.add_argument('-f', '--format')
     _add_boolean_flag_group(parser, 'markup-escape')
+    _add_boolean_flag_group(parser, 'sanitize-unicode')
     _add_boolean_flag_group(parser, 'dedupe')
     parser.add_argument('--version', action='version', version=__version__)
     args = parser.parse_args()
@@ -307,9 +313,8 @@ def _main():
     player = args.player or player_from_config
     if not player:
         sys.exit('player is not specified')
-    for key in ['format', 'markup_escape', 'dedupe']:
-        value = getattr(args, key)
-        if value is not None:
+    for key, value in vars(args).items():
+        if key not in ['config', 'player'] and value is not None:
             config[key] = value
     MPRISBlocklet(bus_name=player, config=config).run()
 
