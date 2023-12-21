@@ -24,6 +24,7 @@ class Formatter(string.Formatter):
         'upper': str.upper,
         'lower': str.lower,
         'capitalize': str.capitalize,
+        'title': str.title,
         'icon': 'status_icon',
     }
 
@@ -69,7 +70,7 @@ class MPRISBlocklet:
     DEFAULT_CONFIG = {
         # Format: {field} or {field:filter}
         # Fields: status, artist, title
-        # Filters: icon (from status only), upper, lower, capitalize
+        # Filters: icon (from status only), upper, lower, capitalize, title
         'format': '{status}: {artist} – {title}',
         # Escape special characters (such as `<>&`) for Pango markup
         'markup_escape': False,
