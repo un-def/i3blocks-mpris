@@ -18,7 +18,7 @@ This project was previously known as **i3blocks-spotify-persist**.
 
 ## Installation
 
-**Python version 3.6 or later is required.**
+**Python version 3.8 or later is required.**
 
 The blocket can be installed from PyPI using `pip`:
 
@@ -93,12 +93,15 @@ Supported fields:
   * `artist`
   * `title`
 
-Supported fitlers:
+Supported filters:
 
-  * `upper` — converts a string to uppercase
-  * `lower` — converts a string to lowercase
-  * `capitalize` — converts the first character of a string to uppercase and the rest to lowercase
-  * `icon` — for `status` field only: converts a textual status to an icon (see the `status_icons` option below)
+| Filter | Description | Example |
+|--------------|---|---|
+| `upper` | [`str.upper`][python-docs-str-upper] | “lorem Ipsum DOLor” → “LOREM IPSUM DOLOR” |
+| `lower` | [`str.lower`][python-docs-str-lower] | “lorem Ipsum DOLor” → “lorem ipsum dolor” |
+| `capitalize` | [`str.capitalize`][python-docs-str-capitalize] | “lorem Ipsum DOLor” → “Lorem ipsum dolor” |
+| `title` | [`str.title`][python-docs-str-title] | “lorem Ipsum DOLor” → “Lorem Ipsum Dolor” |
+| `icon` | converts a textual `status` to an icon, see the `status_icons` option below | “Paused” → “⏸”|
 
 #### markup_escape
 
@@ -123,6 +126,15 @@ This option provides a mapping for the `icon` filter (see above). The default va
 *Default value:* `{"1": "PlayPause"}`
 
 This option provides a mapping of X11 mouse buttons numbers to [MPRIS methods][mpris-methods]. You can use the `xev` program to determine button numbers.
+
+#### sanitize_unicode
+
+*Type:* boolean
+
+*Default value:* `true`
+
+If this option is set to `true`, the blocklet removes some unicode characters (more specifically, characters belonging to `Cc`, `Cs`, `Co`, and `Cn` [general categories][sanitize-unicode-categories]). See [issue #9][sanitize-unicode-issue] for details.
+
 
 #### dedupe
 
@@ -162,8 +174,9 @@ For some reason, the Spotify app emits several identical signals for one action/
 The following arguments override corresponding config options or defaults (that is, command line arguments have the highest precedence):
 
   * `-p`, `--player`
-  * `--format`
+  * `-f`, `--format`
   * `--markup-escape` / `--no-markup-escape`
+  * `--sanitize-unicode` / `--no-sanitize-unicode`
   * `--dedupe` / `--no-dedupe`
 
 
@@ -190,3 +203,9 @@ The [MIT License][license].
 [mpris-spec]: https://specifications.freedesktop.org/mpris-spec/latest/
 [mpris-playbackstatus-type]: https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#Enum:Playback_Status
 [mpris-methods]: https://specifications.freedesktop.org/mpris-spec/latest/Player_Interface.html#methods
+[sanitize-unicode-issue]: https://github.com/un-def/i3blocks-mpris/issues/9
+[sanitize-unicode-categories]: https://en.wikipedia.org/wiki/Unicode_character_property#General_Category
+[python-docs-str-upper]: https://docs.python.org/3/library/stdtypes.html#str.upper
+[python-docs-str-lower]: https://docs.python.org/3/library/stdtypes.html#str.lower
+[python-docs-str-capitalize]: https://docs.python.org/3/library/stdtypes.html#str.capitalize
+[python-docs-str-title]: https://docs.python.org/3/library/stdtypes.html#str.title
