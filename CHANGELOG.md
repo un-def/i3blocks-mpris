@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 (UNRELEASED)
+## 2.1.0
 
 ### Changes
 
@@ -9,7 +9,12 @@
 ### Features
 
   * Added Python 3.12 support.
-  * Unicode values are now sanitized to remove some non-printable characters (see [#9](https://github.com/un-def/i3blocks-mpris/issues/9)).
+  * Added `sanitize_unicode` option (enabled by default) to remove some non-printable unicode characters (see [#9](https://github.com/un-def/i3blocks-mpris/issues/9)).
+  * Added `title` filter.
+
+### Internal Changes
+
+  * All `Formatter` constructor/initializer arguments are now required (no default values) and keyword-only.
 
 ## 2.0.1
 
