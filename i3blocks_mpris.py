@@ -15,7 +15,7 @@ from gi.repository import Gio, GLib
 
 
 __version__ = '2.1.0.dev0'
-__author__ = 'un.def <me@undef.im>'
+__author__ = 'Dmitry Meyer <me@undef.im>'
 
 
 class Formatter(string.Formatter):
