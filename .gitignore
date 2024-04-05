@@ -8,3 +8,4 @@ dist/
 .*
 !.gitignore
 !.editorconfig
+!.github/
