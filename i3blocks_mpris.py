@@ -166,8 +166,7 @@ class MPRISBlocklet:
         except KeyboardInterrupt:
             pass
         finally:
-            if read_stdin:
-                self.stop_stdin_read_loop()
+            self.stop_stdin_read_loop()
 
     def start_stdin_read_loop(self):
         self._stdin_stream = Gio.DataInputStream.new(
@@ -176,12 +175,12 @@ class MPRISBlocklet:
         self._read_stdin_once()
 
     def stop_stdin_read_loop(self):
-        self._stdin_stream.close_async(
-            io_priority=GLib.PRIORITY_DEFAULT,
-            callback=lambda *args: self._loop.quit(),
-        )
-        self._loop.run()
-        self._stdin_stream = None
+        if self._stdin_stream:
+          self._stdin_stream.close_async(
+              io_priority=GLib.PRIORITY_DEFAULT,
+              callback=lambda *args: self._loop.quit(),
+          )
+          self._stdin_stream = None
 
     def _read_stdin_once(self):
         self._stdin_stream.read_line_async(
@@ -241,6 +240,12 @@ class MPRISBlocklet:
         elif old_owner and not new_owner:
             print(flush=True)
             self._last_info = None
+
+        # If there is no new_owner, then the player is gone.
+        # In that case, exit exit gracefully.
+        if not new_owner:
+          self.stop_stdin_read_loop()
+          sys.exit('player has been disowned')
 
     def get_property(self, property_name):
         return self._player.Get(
