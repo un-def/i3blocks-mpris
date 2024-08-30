@@ -163,9 +163,10 @@ class MPRISBlocklet:
         self.connect_to_name_owner_changed_signal()
         try:
             self._loop.run()
-        except KeyboardInterrupt:
-            pass
+        except KeyboardInterrupt as e:
+            raise e
         finally:
+            self._bus.close()
             self.stop_stdin_read_loop()
 
     def start_stdin_read_loop(self):
