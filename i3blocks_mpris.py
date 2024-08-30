@@ -4,6 +4,7 @@ import argparse
 import html
 import json
 import os
+import re
 import string
 import sys
 import unicodedata
@@ -28,6 +29,26 @@ class Formatter(string.Formatter):
         'icon': 'status_icon',
     }
 
+    _TRUNCATE_STR_WITH_SUFFIX_REGEX = re.compile(
+        r'^(?P<base_truncate>\.\d+),(?P<suffix>.+)$'
+    )
+
+    @classmethod
+    def truncate_with_suffix_func_generator(cls, format_spec):
+        truncate_match = cls._TRUNCATE_STR_WITH_SUFFIX_REGEX.fullmatch(format_spec)
+        if truncate_match is None:
+            return None
+
+        def inner(value):
+            base_truncate = truncate_match.group('base_truncate')
+            suffix = truncate_match.group('suffix')
+            truncated = f'{value:{base_truncate}}'
+            if len(truncated) < len(value):
+                return truncated + suffix
+            return truncated
+
+        return inner
+
     def __init__(
         self, status_icons: dict[str, str] | None = None,
         markup_escape: bool = False, sanitize_unicode: bool = True,
@@ -40,6 +61,8 @@ class Formatter(string.Formatter):
         if self._sanitize_unicode and isinstance(value, str):
             value = self._do_sanitize_unicode(value)
         format_func = self._FORMAT_FUNCS.get(format_spec)
+        if not format_func and isinstance(value, str):
+            format_func = self.truncate_with_suffix_func_generator(format_spec)
         if format_func:
             if isinstance(format_func, str):
                 format_func = getattr(self, '_format_func__' + format_func)

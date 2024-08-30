@@ -105,7 +105,9 @@ Supported filters:
 
 Any other Python 3.8+ format spec is also supported, [here are some examples][python-docs-str-format-examples].
 
-In particular, a long `artist` or `title` name can be shortened, centered, padded in a few ways.
+In particular, a long `artist` or `title` name can be shortened, centered, padded in a few ways. A new format spec has been added to
+truncate and add a suffix but only if the string has been shortened, the syntax for this case is `.<max_length>,<suffix>` and the
+last row of examples in this table use it:
 
 |              Artist/Title              |               Format              |                 Result                 |
 |----------------------------------------|-----------------------------------|----------------------------------------|
@@ -113,6 +115,7 @@ In particular, a long `artist` or `title` name can be shortened, centered, padde
 | `Toooooooooooool`                      | `{artist:…<10.9}`                 | `Toooooooo…`                           |
 | `Godzilla` / `Golderia`                | `{artist: ^10} - {title: ^10.4}`  | ` Godzilla  -    Gold   `              |
 | `Apparatus Superiority` / `Player Two` | `{artist:…<16.15} - {title:>15}`  | `Apparatus Super… -      Player Two`   |
+| `In Fire` / `Lan Connected`            | `{artist:.10,…} - {title:.10,…}`  | `In Fire - Lan Connec…`                |
 
 
 #### markup_escape

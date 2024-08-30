@@ -158,6 +158,70 @@ class TestFormatter(unittest.TestCase):
             ),
         )
 
+    def assertIsNone(self, val):
+        self.assertIs(val, None)
+
+    def assertIsNotNone(self, val):
+        self.assertIsNot(val, None)
+
+    def test_truncate_str_with_suffix_regex_non_matches(self):
+        regex = i3blocks_mpris.Formatter._TRUNCATE_STR_WITH_SUFFIX_REGEX
+        self.assertIsNone(regex.fullmatch('.3'))
+        self.assertIsNone(regex.fullmatch('.3,'))
+        self.assertIsNone(regex.fullmatch('5.3…'))
+
+    def test_truncate_str_with_suffix_regex_matches(self):
+        regex = i3blocks_mpris.Formatter._TRUNCATE_STR_WITH_SUFFIX_REGEX
+        match = regex.fullmatch('.3,…')
+        self.assertIsNotNone(match)
+        self.assertEqual('.3', match.group('base_truncate'))
+        self.assertEqual('…', match.group('suffix'))
+
+        match = regex.fullmatch('.3,<end>')
+        self.assertIsNotNone(match)
+        self.assertEqual('.3', match.group('base_truncate'))
+        self.assertEqual('<end>', match.group('suffix'))
+
+    def test_trunate_str_with_suffix(self):
+        formatter = i3blocks_mpris.Formatter()
+        self.assertEqual(
+            'abc…', formatter.format('{long_string:.3,…}', long_string='abcdef')
+        )
+        self.assertEqual(
+            'abcd<end>', formatter.format('{long_string:.4,<end>}', long_string='abcdef')
+        )
+        self.assertEqual(
+            'abcdef', formatter.format('{long_string:.6,<end>}', long_string='abcdef')
+        )
+
+    def test_readme_examples(self):
+        formatter = i3blocks_mpris.Formatter()
+        self.assertEqual(
+            'Long Thea', formatter.format('{artist:.9}', artist='Long Theater')
+        )
+        self.assertEqual(
+            'Toooooooo…', formatter.format('{artist:…<10.9}', artist='Toooooooooooool')
+        )
+        self.assertEqual(
+            ' Godzilla  -    Gold   ',
+            formatter.format(
+                '{artist: ^10} - {title: ^10.4}', artist='Godzilla', title='Golderia'
+            ),
+        )
+        self.assertEqual(
+            'Apparatus Super… -      Player Two',
+            formatter.format(
+                '{artist:…<16.15} - {title:>15}',
+                artist='Apparatus Superiority',
+                title='Player Two',
+            ),
+        )
+        self.assertEqual(
+            'In Fire - Lan Connec…',
+            formatter.format(
+                '{artist:.10,…} - {title:.10,…}', artist='In Fire', title='Lan Connected'
+            ),
+        )
 
 if __name__ == '__main__':
     unittest.main()
