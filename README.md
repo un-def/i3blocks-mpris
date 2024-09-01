@@ -96,12 +96,27 @@ Supported fields:
 Supported filters:
 
 | Filter | Description | Example |
-|--------------|---|---|
-| `upper` | [`str.upper`][python-docs-str-upper] | “lorem Ipsum DOLor” → “LOREM IPSUM DOLOR” |
-| `lower` | [`str.lower`][python-docs-str-lower] | “lorem Ipsum DOLor” → “lorem ipsum dolor” |
-| `capitalize` | [`str.capitalize`][python-docs-str-capitalize] | “lorem Ipsum DOLor” → “Lorem ipsum dolor” |
-| `title` | [`str.title`][python-docs-str-title] | “lorem Ipsum DOLor” → “Lorem Ipsum Dolor” |
-| `icon` | converts a textual `status` to an icon, see the `status_icons` option below | “Paused” → “⏸”|
+|--------------|-----------------------------------------------------------------------------|-------------------------------------------|
+| `upper`      | [`str.upper`][python-docs-str-upper]                                        | “lorem Ipsum DOLor” → “LOREM IPSUM DOLOR” |
+| `lower`      | [`str.lower`][python-docs-str-lower]                                        | “lorem Ipsum DOLor” → “lorem ipsum dolor” |
+| `capitalize` | [`str.capitalize`][python-docs-str-capitalize]                              | “lorem Ipsum DOLor” → “Lorem ipsum dolor” |
+| `title`      | [`str.title`][python-docs-str-title]                                        | “lorem Ipsum DOLor” → “Lorem Ipsum Dolor” |
+| `icon`       | converts a textual `status` to an icon, see the `status_icons` option below | “Paused” → “⏸”                           |
+
+Any other Python 3.8+ format spec is also supported, [here are some examples][python-docs-str-format-examples].
+
+In particular, a long `artist` or `title` name can be shortened, centered, padded in a few ways. A new format spec has been added to
+truncate and add a suffix but only if the string has been shortened, the syntax for this case is `.<max_length>,<suffix>` and the
+last row of examples in this table use it:
+
+|              Artist/Title              |               Format              |                 Result                 |
+|----------------------------------------|-----------------------------------|----------------------------------------|
+| `Long Theater`                         | `{artist:.9}`                     | `Long Thea`                            |
+| `Toooooooooooool`                      | `{artist:…<10.9}`                 | `Toooooooo…`                           |
+| `Godzilla` / `Golderia`                | `{artist: ^10} - {title: ^10.4}`  | ` Godzilla  -    Gold   `              |
+| `Apparatus Superiority` / `Player Two` | `{artist:…<16.15} - {title:>15}`  | `Apparatus Super… -      Player Two`   |
+| `In Fire` / `Lan Connected`            | `{artist:.10,…} - {title:.10,…}`  | `In Fire - Lan Connec…`                |
+
 
 #### markup_escape
 
@@ -209,3 +224,4 @@ The [MIT License][license].
 [python-docs-str-lower]: https://docs.python.org/3/library/stdtypes.html#str.lower
 [python-docs-str-capitalize]: https://docs.python.org/3/library/stdtypes.html#str.capitalize
 [python-docs-str-title]: https://docs.python.org/3/library/stdtypes.html#str.title
+[python-docs-str-format-examples]: https://docs.python.org/3.8/library/string.html#format-examples

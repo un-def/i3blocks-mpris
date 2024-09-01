@@ -5,6 +5,7 @@ import enum
 import html
 import json
 import os
+import re
 import string
 import sys
 import unicodedata
@@ -35,26 +36,46 @@ class Formatter(string.Formatter):
         'icon': 'status_icon',
     }
 
+    _TRUNCATE_STR_WITH_SUFFIX_REGEX = re.compile(
+        r'^(?P<base_truncate>\.\d+),(?P<suffix>.+)$'
+    )
+
+    @classmethod
+    def truncate_with_suffix_func_generator(cls, format_spec):
+        truncate_match = cls._TRUNCATE_STR_WITH_SUFFIX_REGEX.fullmatch(format_spec)
+        if truncate_match is None:
+            return None
+
+        def inner(value):
+            base_truncate = truncate_match.group('base_truncate')
+            suffix = truncate_match.group('suffix')
+            truncated = f'{value:{base_truncate}}'
+            if len(truncated) < len(value):
+                return truncated + suffix
+            return truncated
+
+        return inner
+
     def __init__(
-        self, *, format_string: str, status_icons: dict[str, str],
-        markup_escape: bool, sanitize_unicode: bool,
+        self, status_icons: dict[str, str] | None = None,
+        markup_escape: bool = False, sanitize_unicode: bool = True,
     ):
-        self._format_string = format_string
-        self._status_icons = status_icons.copy()
+        self._status_icons = status_icons.copy() if status_icons else dict()
         self._markup_escape = markup_escape
         self._sanitize_unicode = sanitize_unicode
 
-    def __call__(self, *args, **kwargs):
-        return self.format(self._format_string, *args, **kwargs)
-
-    def format_field(self, value, format_spec):
-        if self._sanitize_unicode:
+    def format_field(self, value, format_spec: str):
+        if self._sanitize_unicode and isinstance(value, str):
             value = self._do_sanitize_unicode(value)
-        if format_spec:
-            format_func = self._FORMAT_FUNCS[format_spec]
+        format_func = self._FORMAT_FUNCS.get(format_spec)
+        if not format_func and isinstance(value, str):
+            format_func = self.truncate_with_suffix_func_generator(format_spec)
+        if format_func:
             if isinstance(format_func, str):
                 format_func = getattr(self, '_format_func__' + format_func)
             value = format_func(value)
+        else:
+            value = super().format_field(value, format_spec)
         if self._markup_escape:
             value = html.escape(value)
         return value
@@ -68,7 +89,7 @@ class Formatter(string.Formatter):
             if unicodedata.category(char) not in {'Cc', 'Cs', 'Co', 'Cn'}
         )
 
-    def _format_func__status_icon(self, status):
+    def _format_func__status_icon(self, status) -> str:
         return self._status_icons.get(status, '?')
 
 
@@ -136,11 +157,11 @@ class MPRISBlocklet:
                 else:
                     _config[key] = value
         self._formatter = Formatter(
-            format_string=_config['format'],
             status_icons=_config['status_icons'],
             markup_escape=_config['markup_escape'],
             sanitize_unicode=_config['sanitize_unicode'],
         )
+        self._format_string=_config['format']
         self._mouse_buttons = _config['mouse_buttons']
         self._dedupe = _config['dedupe']
         self._last_info = None
@@ -407,7 +428,8 @@ class MPRISBlocklet:
             return
         artist = ', '.join(metadata.get('xesam:artist', ()))
         title = metadata.get('xesam:title', '')
-        info = self._formatter(
+        info = self._formatter.format(
+            self._format_string,
             status=status,
             artist=artist,
             title=title,
