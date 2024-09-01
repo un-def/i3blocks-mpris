@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import enum
 import html
 import json
 import os
@@ -14,8 +15,14 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import Gio, GLib
 
 
-__version__ = '2.1.0'
+__version__ = '2.2.0.dev0'
 __author__ = 'Dmitry Meyer <me@undef.im>'
+
+
+class MatchMode(enum.Enum):
+    UNKNOWN = 0
+    EXACT = 1
+    PREFIX = 2
 
 
 class Formatter(string.Formatter):
@@ -90,20 +97,37 @@ class MPRISBlocklet:
         'dedupe': True,
     }
 
-    BUS_NAME_PREFIX = 'org.mpris.MediaPlayer2.'
-    OBJECT_PATH = '/org/mpris/MediaPlayer2'
-    PLAYER_INTERFACE = 'org.mpris.MediaPlayer2.Player'
-    PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
+    MPRIS_BUS_NAME_PREFIX = 'org.mpris.MediaPlayer2.'
+    MPRIS_OBJECT_PATH = '/org/mpris/MediaPlayer2'
+    MPRIS_PLAYER_INTERFACE = 'org.mpris.MediaPlayer2.Player'
+
+    DBUS_BUS_NAME = 'org.freedesktop.DBus'
+    DBUS_OBJECT_PATH = '/org/freedesktop/DBus'
+    DBUS_ROOT_INTERFACE = 'org.freedesktop.DBus'
+    DBUS_PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
 
     _loop = None
     _stdin_stream = None
     _bus = None
-    _player = None
+    _properties_changed_signal_match = None
+    _specific_name_owner_changed_signal_match = None
+    _any_name_owner_changed_signal_match = None
+    _player_connected = False
+    _match_mode: MatchMode
 
     def __init__(self, bus_name, config=None):
-        if not bus_name.startswith(self.BUS_NAME_PREFIX):
-            bus_name = f'{self.BUS_NAME_PREFIX}{bus_name}'
+        if not bus_name.startswith(self.MPRIS_BUS_NAME_PREFIX):
+            bus_name = f'{self.MPRIS_BUS_NAME_PREFIX}{bus_name}'
+        # the current bus name; may be changed if the player allow multiple
+        # instances and the user specified only the player name part without
+        # the specific instance suffix
         self._bus_name = bus_name
+        # for single-instance players or multi-instance players when the
+        # user specified the exact instance, this is actually the full name;
+        # for multi-instance players when the user provided only the non-unique
+        # player name without the instance, this is the bus name without
+        # the instance suffix
+        self._bus_name_prefix = bus_name
         _config = deepcopy(self.DEFAULT_CONFIG)
         if config:
             for key, value in config.items():
@@ -122,6 +146,9 @@ class MPRISBlocklet:
         self._last_info = None
         self._last_status = None
         self._last_metadata = None
+        # a dict used as an ordered set, keys — well-known names with unique
+        # instance suffixes, values — True
+        self._instances = {}
 
     @classmethod
     def create_loop(cls):
@@ -132,20 +159,27 @@ class MPRISBlocklet:
         DBusGMainLoop(set_as_default=True)
         return loop
 
-    @property
-    def name_has_owner(self):
-        return self._bus.name_has_owner(self._bus_name)
+    def bus_name_has_owner(self, bus_name=None):
+        if not bus_name:
+            bus_name = self._bus_name
+        return self._bus.name_has_owner(bus_name)
 
     def init_bus(self):
         self._bus = dbus.SessionBus()
 
-    def init_player(self):
-        self._player = self._bus.get_object(
-            bus_name=self._bus_name,
-            object_path=self.OBJECT_PATH,
-            follow_name_owner_changes=True,
-        )
-        self.connect_to_properties_changed_signal()
+    def _connect_to_player(self):
+        self._player_connected = True
+        self._connect_to_properties_changed_signal()
+        self._connect_to_specific_name_owner_changed_signal()
+        self.show_initial_info()
+
+    def _disconnect_from_player(self):
+        self._player_connected = False
+        if self._match_mode != MatchMode.EXACT:
+            # _bus_name is volatile since it contains unique instance suffix,
+            # we need to connect to each instance each time
+            self._disconnect_from_properties_changed_signal()
+            self._disconnect_from_specific_name_owner_changed_signal()
 
     def run(self, *, loop=None, read_stdin=True, nowait=False):
         if loop is None:
@@ -153,14 +187,32 @@ class MPRISBlocklet:
         else:
             self._loop = loop
         self.init_bus()
-        if self.name_has_owner:
-            self.init_player()
-            self.show_initial_info()
-        elif nowait:
+        # initially, we don't know which match mode to use
+        match_mode = MatchMode.UNKNOWN
+        player_found = False
+        if self.bus_name_has_owner():
+            # either the player don't allow multiple instance, e.g.,
+            # `org.mpris.MediaPlayer2.spotify`, or the user specified the
+            # exact instance, e.g., `org.mpris.MediaPlayer2.chromium.instance2`
+            # in both cases, the exact name match is used
+            match_mode = MatchMode.EXACT
+            player_found = True
+        else:
+            self._find_instances()
+            instance_bus_name = self._pick_instance()
+            if instance_bus_name:
+                player_found = True
+                match_mode = MatchMode.PREFIX
+                self._bus_name = instance_bus_name
+        if not player_found and nowait:
             return
+        self._match_mode = match_mode
+        if player_found:
+            self._connect_to_player()
+        if match_mode != MatchMode.EXACT:
+            self._connect_to_any_name_owner_changed_signal()
         if read_stdin:
             self.start_stdin_read_loop()
-        self.connect_to_name_owner_changed_signal()
         try:
             self._loop.run()
         except KeyboardInterrupt:
@@ -168,6 +220,35 @@ class MPRISBlocklet:
         finally:
             if read_stdin:
                 self.stop_stdin_read_loop()
+
+    def _find_instances(self) -> None:
+        for name in self._bus.list_names():
+            self._maybe_add_instance(name)
+
+    def _maybe_add_instance(self, name: str) -> bool:
+        name_prefix = self._bus_name_prefix
+        if not name.startswith(name_prefix):
+            return False
+        maybe_prefix, _, _ = name.rpartition('.')
+        if maybe_prefix != name_prefix:
+            return False
+        self._instances[name] = True
+        return True
+
+    def _maybe_remove_instance(self, name: str) -> None:
+        name_prefix = self._bus_name_prefix
+        if not name.startswith(name_prefix):
+            return
+        maybe_prefix, _, _ = name.rpartition('.')
+        if maybe_prefix == name_prefix:
+            self._instances.pop(name, None)
+
+    def _pick_instance(self) -> str | None:
+        for bus_name in reversed(tuple(self._instances)):
+            if self.bus_name_has_owner(bus_name):
+                return bus_name
+            del self._instances[bus_name]
+        return None
 
     def start_stdin_read_loop(self):
         self._stdin_stream = Gio.DataInputStream.new(
@@ -196,56 +277,115 @@ class MPRISBlocklet:
             button = result[0].decode()
         except ValueError:
             button = None
-        if button and self._player:
+        if button and self._player_connected:
             method_name = self._mouse_buttons.get(button)
             if method_name:
-                self._player.get_dbus_method(
-                    method_name, dbus_interface=self.PLAYER_INTERFACE)()
+                self._bus.call_async(
+                    bus_name=self._bus_name,
+                    object_path=self.MPRIS_OBJECT_PATH,
+                    dbus_interface=self.MPRIS_PLAYER_INTERFACE,
+                    method=method_name, signature='', args=[],
+                    reply_handler=None, error_handler=None,
+                )
         self._read_stdin_once()
 
-    def connect_to_properties_changed_signal(self):
-        self._player.connect_to_signal(
+    def _connect_to_properties_changed_signal(self):
+        if self._properties_changed_signal_match:
+            return
+        self._properties_changed_signal_match = self._bus.add_signal_receiver(
+            bus_name=self._bus_name,
+            dbus_interface=self.DBUS_PROPERTIES_INTERFACE,
             signal_name='PropertiesChanged',
             handler_function=self._on_properties_changed,
-            dbus_interface=self.PROPERTIES_INTERFACE,
         )
 
     def _on_properties_changed(self, interface_name, changed_properties, _):
-        """Show updated info when playback status or track is changed"""
         self.show_info(
             status=changed_properties.get('PlaybackStatus'),
             metadata=changed_properties.get('Metadata'),
             only_if_changed=self._dedupe,
         )
 
-    def connect_to_name_owner_changed_signal(self):
-        self._bus.get_object(
-            bus_name='org.freedesktop.DBus',
-            object_path='/org/freedesktop/DBus',
-        ).connect_to_signal(
-            signal_name='NameOwnerChanged',
-            handler_function=self._on_name_owner_changed,
-            dbus_interface='org.freedesktop.DBus',
-            arg0=self._bus_name,
-        )
+    def _disconnect_from_properties_changed_signal(self):
+        if self._properties_changed_signal_match:
+            self._properties_changed_signal_match.remove()
+            self._properties_changed_signal_match = None
 
-    def _on_name_owner_changed(self, name, old_owner, new_owner):
-        """
-        Get the player and show the initial info when the player is started
-        or clear the info when the player is closed
-        """
+    def _connect_to_specific_name_owner_changed_signal(self):
+        if self._specific_name_owner_changed_signal_match:
+            return
+        signal_match = self._bus.add_signal_receiver(
+            bus_name=self.DBUS_BUS_NAME,
+            path=self.DBUS_OBJECT_PATH,
+            dbus_interface=self.DBUS_ROOT_INTERFACE,
+            signal_name='NameOwnerChanged',
+            arg0=self._bus_name,
+            handler_function=self._on_specific_name_owner_changed,
+        )
+        self._specific_name_owner_changed_signal_match = signal_match
+
+    def _on_specific_name_owner_changed(self, name, old_owner, new_owner):
         if not old_owner and new_owner:
-            if not self._player:
-                self.init_player()
-            self.show_initial_info()
+            if not self._player_connected:
+                self._connect_to_player()
         elif old_owner and not new_owner:
-            print(flush=True)
-            self._last_info = None
+            self._disconnect_from_player()
+            next_instance_bus_name: str | None = None
+            if self._match_mode == MatchMode.PREFIX:
+                next_instance_bus_name = self._pick_instance()
+            if next_instance_bus_name:
+                self._bus_name = next_instance_bus_name
+                self._connect_to_player()
+            else:
+                print(flush=True)
+                self._last_info = None
+
+    def _disconnect_from_specific_name_owner_changed_signal(self):
+        if self._specific_name_owner_changed_signal_match:
+            self._specific_name_owner_changed_signal_match.remove()
+            self._specific_name_owner_changed_signal_match = None
+
+    def _connect_to_any_name_owner_changed_signal(self):
+        if self._any_name_owner_changed_signal_match:
+            return
+        signal_match = self._bus.add_signal_receiver(
+            bus_name=self.DBUS_BUS_NAME,
+            path=self.DBUS_OBJECT_PATH,
+            dbus_interface=self.DBUS_ROOT_INTERFACE,
+            signal_name='NameOwnerChanged',
+            handler_function=self._on_any_name_owner_changed,
+        )
+        self._any_name_owner_changed_signal_match = signal_match
+
+    def _on_any_name_owner_changed(self, name, old_owner, new_owner):
+        if not old_owner and new_owner:
+            if name == self._bus_name_prefix:
+                self._match_mode = MatchMode.EXACT
+                self._bus_name = name
+                self._disconnect_from_any_name_owner_changed_signal()
+                self._connect_to_player()
+            else:
+                instance_added = self._maybe_add_instance(name)
+                if instance_added:
+                    self._match_mode = MatchMode.PREFIX
+                    if not self._player_connected:
+                        self._bus_name = name
+                        self._connect_to_player()
+        elif old_owner and not new_owner:
+            self._maybe_remove_instance(name)
+
+    def _disconnect_from_any_name_owner_changed_signal(self):
+        if self._any_name_owner_changed_signal_match:
+            self._any_name_owner_changed_signal_match.remove()
+            self._any_name_owner_changed_signal_match = None
 
     def get_property(self, property_name):
-        return self._player.Get(
-            self.PLAYER_INTERFACE, property_name,
-            dbus_interface=self.PROPERTIES_INTERFACE,
+        return self._bus.call_blocking(
+            bus_name=self._bus_name,
+            object_path=self.MPRIS_OBJECT_PATH,
+            dbus_interface=self.DBUS_PROPERTIES_INTERFACE,
+            method='Get', signature='ss',
+            args=[self.MPRIS_PLAYER_INTERFACE, property_name],
         )
 
     def show_initial_info(self):
