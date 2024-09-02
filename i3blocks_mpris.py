@@ -129,7 +129,7 @@ class MPRISBlocklet:
 
     _loop = None
     _stdin_stream = None
-    _bus = None
+    _bus: dbus.SessionBus | None = None
     _properties_changed_signal_match = None
     _specific_name_owner_changed_signal_match = None
     _any_name_owner_changed_signal_match = None
@@ -167,9 +167,8 @@ class MPRISBlocklet:
         self._last_info = None
         self._last_status = None
         self._last_metadata = None
-        # a dict used as an ordered set, keys — well-known names with unique
-        # instance suffixes, values — True
-        self._instances = {}
+        # a dict set of well-known names with unique instance suffixes
+        self._instances = set()
 
     @classmethod
     def create_loop(cls):
@@ -180,9 +179,7 @@ class MPRISBlocklet:
         DBusGMainLoop(set_as_default=True)
         return loop
 
-    def bus_name_has_owner(self, bus_name=None):
-        if not bus_name:
-            bus_name = self._bus_name
+    def bus_name_has_owner(self, bus_name: str):
         return self._bus.name_has_owner(bus_name)
 
     def init_bus(self):
@@ -211,7 +208,7 @@ class MPRISBlocklet:
         # initially, we don't know which match mode to use
         match_mode = MatchMode.UNKNOWN
         player_found = False
-        if self.bus_name_has_owner():
+        if self.bus_name_has_owner(self._bus_name):
             # either the player don't allow multiple instance, e.g.,
             # `org.mpris.MediaPlayer2.spotify`, or the user specified the
             # exact instance, e.g., `org.mpris.MediaPlayer2.chromium.instance2`
@@ -236,11 +233,10 @@ class MPRISBlocklet:
             self.start_stdin_read_loop()
         try:
             self._loop.run()
-        except KeyboardInterrupt:
-            pass
+        except KeyboardInterrupt as e:
+            raise e
         finally:
-            if read_stdin:
-                self.stop_stdin_read_loop()
+            self.stop_stdin_read_loop()
 
     def _find_instances(self) -> None:
         for name in self._bus.list_names():
@@ -253,22 +249,22 @@ class MPRISBlocklet:
         maybe_prefix, _, _ = name.rpartition('.')
         if maybe_prefix != name_prefix:
             return False
-        self._instances[name] = True
+        self._instances.add(name)
         return True
 
     def _maybe_remove_instance(self, name: str) -> None:
         name_prefix = self._bus_name_prefix
         if not name.startswith(name_prefix):
             return
-        maybe_prefix, _, _ = name.rpartition('.')
-        if maybe_prefix == name_prefix:
-            self._instances.pop(name, None)
+        maybe_prefix, _, _ = name.rpartition('.' )
+        if maybe_prefix == name_prefix and name in self._instances:
+            self._instances.remove(name)
 
     def _pick_instance(self) -> str | None:
-        for bus_name in reversed(tuple(self._instances)):
+        for bus_name in sorted(self._instances, reverse=True):
             if self.bus_name_has_owner(bus_name):
                 return bus_name
-            del self._instances[bus_name]
+            self._instances.remove(bus_name)
         return None
 
     def start_stdin_read_loop(self):
@@ -278,11 +274,12 @@ class MPRISBlocklet:
         self._read_stdin_once()
 
     def stop_stdin_read_loop(self):
+        if not self._stdin_stream:
+            return
         self._stdin_stream.close_async(
             io_priority=GLib.PRIORITY_DEFAULT,
             callback=lambda *args: self._loop.quit(),
         )
-        self._loop.run()
         self._stdin_stream = None
 
     def _read_stdin_once(self):
@@ -345,7 +342,7 @@ class MPRISBlocklet:
         )
         self._specific_name_owner_changed_signal_match = signal_match
 
-    def _on_specific_name_owner_changed(self, name, old_owner, new_owner):
+    def _on_specific_name_owner_changed(self, unused_name, old_owner, new_owner):
         if not old_owner and new_owner:
             if not self._player_connected:
                 self._connect_to_player()
@@ -358,7 +355,7 @@ class MPRISBlocklet:
                 self._bus_name = next_instance_bus_name
                 self._connect_to_player()
             else:
-                print(flush=True)
+                print('(no player)', flush=True)
                 self._last_info = None
 
     def _disconnect_from_specific_name_owner_changed_signal(self):
