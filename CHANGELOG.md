@@ -2,7 +2,7 @@
 
 ## 2.2.0
 
-## Features
+### Features
 
   * Multi-instance player support. It's now possible to specify a player by its non-unique name prefix only, without the unique instance suffix, e.g., `-p firefox` instead of `-p firefox.instance_1_34`. The blocklet monitors all instances and pick the new one when the previous disappears.
   * Improved formatter by [@tellezhector](https://github.com/tellezhector):
@@ -10,7 +10,7 @@
     - Added a format_spec for truncating strings and adding a suffix `{string:.<max_length>,<suffix>}`.
   * Added a placeholder message displayed when there is no player.
 
-## Changes
+### Changes
 
   * The blocket no longer handles `SIGINT`. See [PR #14](https://github.com/un-def/i3blocks-mpris/pull/14) for an explanation.
 
