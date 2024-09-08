@@ -132,7 +132,7 @@ class MPRISBlocklet:
 
     _loop = None
     _stdin_stream = None
-    _bus = None
+    _bus: dbus.SessionBus | None = None
     _properties_changed_signal_match = None
     _specific_name_owner_changed_signal_match = None
     _any_name_owner_changed_signal_match = None
@@ -184,9 +184,7 @@ class MPRISBlocklet:
         DBusGMainLoop(set_as_default=True)
         return loop
 
-    def bus_name_has_owner(self, bus_name=None):
-        if not bus_name:
-            bus_name = self._bus_name
+    def bus_name_has_owner(self, bus_name: str):
         return self._bus.name_has_owner(bus_name)
 
     def init_bus(self):
@@ -215,7 +213,7 @@ class MPRISBlocklet:
         # initially, we don't know which match mode to use
         match_mode = MatchMode.UNKNOWN
         player_found = False
-        if self.bus_name_has_owner():
+        if self.bus_name_has_owner(self._bus_name):
             # either the player don't allow multiple instance, e.g.,
             # `org.mpris.MediaPlayer2.spotify`, or the user specified the
             # exact instance, e.g., `org.mpris.MediaPlayer2.chromium.instance2`
@@ -242,11 +240,8 @@ class MPRISBlocklet:
             self.start_stdin_read_loop()
         try:
             self._loop.run()
-        except KeyboardInterrupt:
-            pass
         finally:
-            if read_stdin:
-                self.stop_stdin_read_loop()
+            self.stop_stdin_read_loop()
 
     def _find_instances(self) -> None:
         for name in self._bus.list_names():
@@ -284,6 +279,8 @@ class MPRISBlocklet:
         self._read_stdin_once()
 
     def stop_stdin_read_loop(self):
+        if not self._stdin_stream:
+            return
         self._stdin_stream.close_async(
             io_priority=GLib.PRIORITY_DEFAULT,
             callback=lambda *args: self._loop.quit(),
@@ -351,7 +348,7 @@ class MPRISBlocklet:
         )
         self._specific_name_owner_changed_signal_match = signal_match
 
-    def _on_specific_name_owner_changed(self, name, old_owner, new_owner):
+    def _on_specific_name_owner_changed(self, _name, old_owner, new_owner):
         if not old_owner and new_owner:
             if not self._player_connected:
                 self._connect_to_player()
