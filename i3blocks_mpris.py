@@ -240,8 +240,6 @@ class MPRISBlocklet:
             self.start_stdin_read_loop()
         try:
             self._loop.run()
-        except KeyboardInterrupt as e:
-            raise e
         finally:
             self.stop_stdin_read_loop()
 
