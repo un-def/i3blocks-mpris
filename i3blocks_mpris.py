@@ -171,8 +171,9 @@ class MPRISBlocklet:
         self._last_info = None
         self._last_status = None
         self._last_metadata = None
-        # a dict set of well-known names with unique instance suffixes
-        self._instances = set()
+        # a dict used as an ordered set, keys — well-known names with unique
+        # instance suffixes, values — True
+        self._instances = {}
 
     @classmethod
     def create_loop(cls):
@@ -255,22 +256,22 @@ class MPRISBlocklet:
         maybe_prefix, _, _ = name.rpartition('.')
         if maybe_prefix != name_prefix:
             return False
-        self._instances.add(name)
+        self._instances[name] = True
         return True
 
     def _maybe_remove_instance(self, name: str) -> None:
         name_prefix = self._bus_name_prefix
         if not name.startswith(name_prefix):
             return
-        maybe_prefix, _, _ = name.rpartition('.' )
-        if maybe_prefix == name_prefix and name in self._instances:
-            self._instances.remove(name)
+        maybe_prefix, _, _ = name.rpartition('.')
+        if maybe_prefix == name_prefix:
+            self._instances.pop(name, None)
 
     def _pick_instance(self) -> str | None:
-        for bus_name in sorted(self._instances, reverse=True):
+        for bus_name in reversed(tuple(self._instances)):
             if self.bus_name_has_owner(bus_name):
                 return bus_name
-            self._instances.remove(bus_name)
+            del self._instances[bus_name]
         return None
 
     def start_stdin_read_loop(self):
@@ -286,6 +287,7 @@ class MPRISBlocklet:
             io_priority=GLib.PRIORITY_DEFAULT,
             callback=lambda *args: self._loop.quit(),
         )
+        self._loop.run()
         self._stdin_stream = None
 
     def _read_stdin_once(self):
@@ -348,7 +350,7 @@ class MPRISBlocklet:
         )
         self._specific_name_owner_changed_signal_match = signal_match
 
-    def _on_specific_name_owner_changed(self, unused_name, old_owner, new_owner):
+    def _on_specific_name_owner_changed(self, _name, old_owner, new_owner):
         if not old_owner and new_owner:
             if not self._player_connected:
                 self._connect_to_player()
