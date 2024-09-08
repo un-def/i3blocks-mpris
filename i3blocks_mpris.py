@@ -42,7 +42,8 @@ class Formatter(string.Formatter):
 
     @classmethod
     def truncate_with_suffix_func_generator(cls, format_spec):
-        truncate_match = cls._TRUNCATE_STR_WITH_SUFFIX_REGEX.fullmatch(format_spec)
+        truncate_match = cls._TRUNCATE_STR_WITH_SUFFIX_REGEX.fullmatch(
+            format_spec)
         if truncate_match is None:
             return None
 
@@ -100,6 +101,8 @@ class MPRISBlocklet:
         # Fields: status, artist, title
         # Filters: icon (from status only), upper, lower, capitalize, title
         'format': '{status}: {artist} – {title}',
+        # A message displayed when there is no player
+        'placeholder': '',
         # Escape special characters (such as `<>&`) for Pango markup
         'markup_escape': False,
         # Remove `C` category unicode characters (except for `Cf`)
@@ -161,7 +164,8 @@ class MPRISBlocklet:
             markup_escape=_config['markup_escape'],
             sanitize_unicode=_config['sanitize_unicode'],
         )
-        self._format_string=_config['format']
+        self._format_string = _config['format']
+        self._placeholder = _config['placeholder']
         self._mouse_buttons = _config['mouse_buttons']
         self._dedupe = _config['dedupe']
         self._last_info = None
@@ -230,6 +234,8 @@ class MPRISBlocklet:
         self._match_mode = match_mode
         if player_found:
             self._connect_to_player()
+        else:
+            self.show_placeholder(only_if_not_empty=True)
         if match_mode != MatchMode.EXACT:
             self._connect_to_any_name_owner_changed_signal()
         if read_stdin:
@@ -358,7 +364,7 @@ class MPRISBlocklet:
                 self._bus_name = next_instance_bus_name
                 self._connect_to_player()
             else:
-                print(flush=True)
+                self.show_placeholder()
                 self._last_info = None
 
     def _disconnect_from_specific_name_owner_changed_signal(self):
@@ -438,6 +444,11 @@ class MPRISBlocklet:
             print(info, flush=True)
             self._last_info = info
 
+    def show_placeholder(self, *, only_if_not_empty: bool = False):
+        if only_if_not_empty and not self._placeholder:
+            return
+        print(self._placeholder, flush=True)
+
 
 def _add_boolean_flag_group(
     parser: argparse.ArgumentParser, name: str, dest: str | None = None,
@@ -456,6 +467,7 @@ def _parse_args():
     parser.add_argument('-c', '--config')
     parser.add_argument('-p', '--player')
     parser.add_argument('-f', '--format')
+    parser.add_argument('-n', '--placeholder')
     _add_boolean_flag_group(parser, 'markup-escape')
     _add_boolean_flag_group(parser, 'sanitize-unicode')
     _add_boolean_flag_group(parser, 'dedupe')

@@ -117,6 +117,13 @@ last row of examples in this table use it:
 | `Apparatus Superiority` / `Player Two` | `{artist:…<16.15} - {title:>15}`  | `Apparatus Super… -      Player Two`   |
 | `In Fire` / `Lan Connected`            | `{artist:.10,…} - {title:.10,…}`  | `In Fire - Lan Connec…`                |
 
+#### placeholder
+
+*Type:* string
+
+*Default value:* empty string
+
+A message displayed when there is no player. If an empty string (the default), the blocklet completely disappears.
 
 #### markup_escape
 
