@@ -16,7 +16,7 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import Gio, GLib
 
 
-__version__ = '2.2.0.dev0'
+__version__ = '2.2.0'
 __author__ = 'Dmitry Meyer <me@undef.im>'
 
 
