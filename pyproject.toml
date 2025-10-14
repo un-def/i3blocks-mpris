@@ -16,17 +16,17 @@ classifiers = [
     'License :: OSI Approved :: MIT License',
     'Operating System :: POSIX :: Linux',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
 ]
 keywords = ['i3blocks', 'blocklet']
-requires-python = '>= 3.8'
+requires-python = '>= 3.10'
 dependencies = [
-    'dbus-python >= 1.3, < 1.4',
-    'PyGObject >= 3.46, < 3.48, != 3.47.*',
+    'dbus-python >= 1.3, < 1.5',
+    'PyGObject >= 3.54, < 3.55',
 ]
 dynamic = ['version']
 

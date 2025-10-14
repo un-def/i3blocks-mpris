@@ -4,6 +4,7 @@ build/
 dist/
 *.egg-info/
 *.whl
+uv.lock
 
 .*
 !.gitignore

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import argparse
 import enum
 import html
@@ -13,10 +11,10 @@ from copy import deepcopy
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
-from gi.repository import Gio, GLib
+from gi.repository import Gio, GioUnix, GLib
 
 
-__version__ = '2.2.0'
+__version__ = '2.3.0.dev0'
 __author__ = 'Dmitry Meyer <me@undef.im>'
 
 
@@ -274,7 +272,7 @@ class MPRISBlocklet:
 
     def start_stdin_read_loop(self):
         self._stdin_stream = Gio.DataInputStream.new(
-            Gio.UnixInputStream.new(sys.stdin.fileno(), False))
+            GioUnix.InputStream.new(sys.stdin.fileno(), False))
         self._stdin_stream.set_close_base_stream(True)
         self._read_stdin_once()
 

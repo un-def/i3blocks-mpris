@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.3.0 (UNRELEASED)
+
+### Fixes
+
+  * Fixed compatibility with GLib 2.86+: bumped PyGObject version to 3.54, which requires:
+    - glib >= 2.80.0
+    - girepository-2.0
+
+### Changes
+
+  * Added Python 3.13 and 3.14 support.
+  * Dropped Python 3.8 and 3.9 support.
+
 ## 2.2.0
 
 ### Features

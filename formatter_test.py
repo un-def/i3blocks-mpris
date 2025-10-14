@@ -1,6 +1,7 @@
 """Unit tests for string formatter."""
 
 import unittest
+
 import i3blocks_mpris
 
 
