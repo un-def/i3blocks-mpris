@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.3.0 (UNRELEASED)
+## 2.3.0
 
 ### Fixes
 

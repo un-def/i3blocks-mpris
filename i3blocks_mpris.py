@@ -14,7 +14,7 @@ from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from gi.repository import Gio, GioUnix, GLib
 
 
-__version__ = '2.3.0.dev0'
+__version__ = '2.3.0'
 __author__ = 'Dmitry Meyer <me@undef.im>'
 
 
