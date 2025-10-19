@@ -6,14 +6,14 @@ build-backend = 'setuptools.build_meta'
 name = 'i3blocks-mpris'
 description = 'A persistent i3blocks blocklet for the MPRIS D-Bus interface'
 readme = 'README.md'
-license = {text = 'MIT'}
+license = 'MIT'
+license-files = ['LICENSE']
 authors = [
     {name = 'Dmitry Meyer', email = 'me@undef.im'},
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: End Users/Desktop',
-    'License :: OSI Approved :: MIT License',
     'Operating System :: POSIX :: Linux',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.10',
